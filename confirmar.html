@@ -1,0 +1,30 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="referrer" content="no-referrer"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css"><title>Confirmar suscripción · Atalaya Verde</title><link rel="canonical" href="https://atalayaverde.github.io/confirmar.html"><meta property="og:url" content="https://atalayaverde.github.io/confirmar.html"></head><body><header style="background:#12392d"><div class="wrap"><nav class="nav"><a class="brand" href="index.html"><i></i>Atalaya Verde</a><a class="btn-s" href="index.html#alta">Suscribirme</a></nav></div></header>
+<main class="wrap"><div class="center"><div>
+<div class="big" id="ic">⏳</div><h1 id="h" style="font:700 32px Georgia,serif;color:#12392d;margin:10px 0">Confirmando tu correo…</h1><p id="p" style="color:#5d6862;max-width:30em;margin:0 auto 20px">Un momento.</p>
+<button class="btn" id="retry" style="background:#12392d;color:#c4e456" hidden>Reintentar confirmación</button> <a class="btn" style="background:transparent;color:#12392d;border:1px solid #12392d" href="index.html">Volver al inicio</a></div></div></main><footer><div class="wrap"><a href="index.html">Inicio</a> · <a href="privacidad.html">Política de privacidad</a> · <a href="aviso-legal.html">Aviso legal</a></div></footer>
+<script src="config.js"></script>
+<noscript><p style="text-align:center;padding:16px;color:#b3261e">Para confirmar tu suscripción necesitas activar JavaScript en el navegador, o abrir este enlace en Chrome o Safari.</p></noscript>
+<script>
+(() => {
+  const C = window.AV_CONFIG, t = new URLSearchParams(location.search).get('t') || '';
+  const el = (i) => document.getElementById(i);
+  const set = (ic, h, p) => { el('ic').textContent = ic; el('h').textContent = h; el('p').textContent = p; };
+  async function go() {
+    el('retry').hidden = true;
+    set('⏳', 'Confirmando tu correo…', 'Un momento.');
+    if (t.length < 40) { set('⚠️', 'Enlace incompleto', 'Al enlace le falta el código. Copia la dirección completa del correo en tu navegador, o vuelve a suscribirte desde el inicio.'); return; }
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 20000);
+    try {
+      const r = await fetch(C.SUPABASE_URL + '/rest/v1/rpc/confirm_subscription', { method: 'POST', signal: ctl.signal, headers: { apikey: C.SUPABASE_KEY, Authorization: 'Bearer ' + C.SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: t }) });
+      const v = r.ok ? await r.json() : 'error';
+      if (v === 'ok') set('✅', '¡Suscripción confirmada!', 'Tu prueba gratuita de 14 días ha empezado. Recibirás tu primer resumen en la próxima tanda. Cada correo lleva un enlace para darte de baja con un clic.');
+      else if (v === 'expired') set('⌛', 'El enlace ha caducado', 'Los enlaces de confirmación duran 7 días. Vuelve a rellenar el formulario y te enviaremos uno nuevo.');
+      else if (v === 'invalid') set('⚠️', 'Enlace no válido', 'No reconocemos este enlace. Puede que ya se haya dado de baja esta suscripción o que el enlace esté incompleto.');
+      else { set('⚠️', 'No hemos podido confirmar', 'Pulsa el botón para reintentarlo. Si sigue fallando, abre el enlace del correo en Chrome o Safari.'); el('retry').hidden = false; }
+    } catch { set('⚠️', 'No se ha podido conectar', 'Pulsa el botón para reintentarlo. Si sigue fallando, copia el enlace del correo y ábrelo en Chrome o Safari (algunos navegadores integrados de apps de correo bloquean la conexión).'); el('retry').hidden = false; }
+    finally { clearTimeout(to); }
+  }
+  el('retry').addEventListener('click', go);
+  go();
+})();
+</script></body></html>

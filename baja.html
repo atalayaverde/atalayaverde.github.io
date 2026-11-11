@@ -1,0 +1,23 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="referrer" content="no-referrer"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css"><title>Darme de baja · Atalaya Verde</title><link rel="canonical" href="https://atalayaverde.github.io/baja.html"><meta property="og:url" content="https://atalayaverde.github.io/baja.html"></head><body><header style="background:#12392d"><div class="wrap"><nav class="nav"><a class="brand" href="index.html"><i></i>Atalaya Verde</a><a class="btn-s" href="index.html#alta">Suscribirme</a></nav></div></header>
+<main class="wrap"><div class="center"><div>
+<div class="big" id="ic">⏳</div><h1 id="h" style="font:700 32px Georgia,serif;color:#12392d;margin:10px 0">Tramitando tu baja…</h1><p id="p" style="color:#5d6862;max-width:32em;margin:0 auto 20px">Un momento.</p>
+<button class="btn" id="retry" style="background:#12392d;color:#c4e456" hidden>Confirmar baja</button> <a class="btn" style="background:transparent;color:#12392d;border:1px solid #12392d" href="index.html">Volver al inicio</a></div></div></main><footer><div class="wrap"><a href="index.html">Inicio</a> · <a href="privacidad.html">Política de privacidad</a> · <a href="aviso-legal.html">Aviso legal</a></div></footer>
+<script src="config.js"></script>
+<script>
+(() => {
+  const C = window.AV_CONFIG, t = new URLSearchParams(location.search).get('t') || '';
+  const el = (i) => document.getElementById(i);
+  const set = (ic, h, p) => { el('ic').textContent = ic; el('h').textContent = h; el('p').textContent = p; };
+  async function go() {
+    try {
+      const r = await fetch(C.SUPABASE_URL + '/rest/v1/rpc/unsubscribe', { method: 'POST', headers: { apikey: C.SUPABASE_KEY, Authorization: 'Bearer ' + C.SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: t }) });
+      const v = r.ok ? await r.json() : 'error';
+      if (v === 'ok') { set('👋', 'Te has dado de baja', 'No recibirás más correos. Hemos borrado tus preferencias y el nombre de tu empresa; solo conservamos bloqueados tu correo y las fechas de consentimiento y baja, como explica la política de privacidad. Si fue un error, puedes volver a suscribirte cuando quieras.'); el('retry').hidden = true; }
+      else if (v === 'invalid') { set('⚠️', 'Enlace no válido', 'No reconocemos este enlace o la baja ya estaba tramitada. Si sigues recibiendo correos, escríbenos al contacto del aviso legal y te damos de baja a mano.'); }
+      else { set('⚠️', 'No hemos podido tramitar la baja', 'Pulsa el botón para reintentarlo.'); el('retry').hidden = false; }
+    } catch { set('⚠️', 'Sin conexión', 'Pulsa el botón para reintentarlo.'); el('retry').hidden = false; }
+  }
+  el('retry').addEventListener('click', go);
+  go();   // baja con un solo clic: al abrir el enlace del correo se tramita directamente
+})();
+</script></body></html>
