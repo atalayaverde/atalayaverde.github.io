@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Panel de oportunidades · Atalaya Verde</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .panel-wrap{max-width:1040px;margin:0 auto;padding:28px 20px 64px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0 22px}
+  .kpi{background:#fff;border:1px solid #e1dccd;border-radius:12px;padding:14px 16px}
+  .kpi b{display:block;font-size:24px;color:#12392d}
+  .kpi span{font-size:12.5px;color:#5d6862}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:14px 0 18px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .pill-btn{border:1px solid #d5cfbe;background:#fff;padding:7px 13px;border-radius:999px;cursor:pointer;font-weight:600;font-size:13px}
+  .pill-btn.active{background:#12392d;color:#c4e456;border-color:#12392d}
+  .search-box{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .search-box input,.search-box select{padding:8px 11px;border:1px solid #d5cfbe;border-radius:8px;background:#fff;font-size:13.5px}
+  .opp-grid{display:grid;gap:14px}
+  .opp-card{background:#fff;border:1px solid #e1dccd;border-left:5px solid #1d5c3f;border-radius:12px;padding:16px 18px}
+  .opp-card.saved{border-left-color:#b7791f;background:#fffdf7}
+  .opp-card.discarded{opacity:.65}
+  .opp-top{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;color:#5d6862;margin-bottom:6px}
+  .opp-badge{background:#12392d;color:#c4e456;font-weight:800;padding:4px 9px;border-radius:8px}
+  .opp-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+  .btn-sm{padding:6px 12px;border-radius:8px;border:1px solid #d5cfbe;background:#f7f5ee;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;color:#1b2420}
+  .btn-sm.primary{background:#12392d;color:#c4e456;border-color:#12392d}
+</style>
+</head>
+<body>
+<header class="hero" style="padding:20px 0">
+  <div class="wrap">
+    <nav class="nav">
+      <a class="brand" href="index.html"><i></i>Atalaya Verde</a>
+      <span id="companyBadge" style="color:#cfe3d8;font-size:14px;font-weight:600">Cargando panel...</span>
+    </nav>
+  </div>
+</header>
+
+<main class="panel-wrap">
+  <h1>Radar de oportunidades</h1>
+  <p class="sub">El 100 % de licitaciones y ayudas que encajan con tu perfil, ordenadas por relevancia y plazo.</p>
+
+  <section class="kpis" aria-label="Resumen">
+    <div class="kpi"><b id="kpiTotal">0</b><span>Coincidencias activas</span></div>
+    <div class="kpi"><b id="kpiUrgent">0</b><span>Cierran en ≤ 7 días</span></div>
+    <div class="kpi"><b id="kpiSaved">0</b><span>Guardadas</span></div>
+    <div class="kpi"><b id="kpiBudget">0 €</b><span>Presupuesto visible</span></div>
+  </section>
+
+  <div class="controls">
+    <div class="toolbar" role="group" aria-label="Filtrar por estado">
+      <button class="pill-btn active" data-status="">Todas</button>
+      <button class="pill-btn" data-status="new">Nuevas</button>
+      <button class="pill-btn" data-status="saved">Guardadas</button>
+      <button class="pill-btn" data-status="discarded">Descartadas</button>
+    </div>
+    <div class="search-box">
+      <select id="kindFilter" aria-label="Tipo de convocatoria">
+        <option value="">Todas las fuentes</option>
+        <option value="licitacion_es">Licitaciones España</option>
+        <option value="licitacion_ue">Licitaciones UE</option>
+        <option value="ayuda_es">Ayudas España</option>
+        <option value="fondo_ue">Fondos UE</option>
+      </select>
+      <input id="searchInput" type="search" placeholder="Buscar organismo, título, zona...">
+      <button class="btn-sm primary" id="exportCsvBtn" type="button">Exportar CSV</button>
+    </div>
+  </div>
+
+  <p id="statusMsg" class="note"></p>
+  <div id="oppList" class="opp-grid"></div>
+  <p class="note" style="margin-top:28px">Servicio informativo automatizado no oficial. Verifica siempre las bases y pliegos en la fuente oficial antes de presentar oferta.</p>
+</main>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  var cfg = window.AV_CONFIG || {};
+  var token = new URLSearchParams(location.search).get('t') || '';
+  var listEl = document.getElementById('oppList');
+  var statusEl = document.getElementById('statusMsg');
+  var badgeEl = document.getElementById('companyBadge');
+  var searchEl = document.getElementById('searchInput');
+  var kindEl = document.getElementById('kindFilter');
+  var activeFilter = '';
+  var allMatches = [];
+  var KIND_LABEL = {
+    licitacion_es: 'Licitación · España',
+    licitacion_ue: 'Licitación · UE',
+    ayuda_es: 'Ayuda · España',
+    fondo_ue: 'Fondo · UE'
+  };
+
+  function rpc(name, body) {
+    return fetch(cfg.SUPABASE_URL + '/rest/v1/rpc/' + name, {
+      method: 'POST',
+      headers: {
+        'apikey': cfg.SUPABASE_KEY,
+        'Authorization': 'Bearer ' + cfg.SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/[&<>"]/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c];
+    });
+  }
+
+  function fmtMoney(n, cur) {
+    if (n == null) return 'Importe no indicado';
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: cur || 'EUR', maximumFractionDigits: 0 }).format(n);
+  }
+
+  function getVisible() {
+    var q = (searchEl.value || '').trim().toLowerCase();
+    var k = kindEl.value || '';
+    return allMatches.filter(function (m) {
+      if (k && m.kind !== k) return false;
+      if (!q) return true;
+      return (m.title + ' ' + m.org + ' ' + m.place + ' ' + m.category_label).toLowerCase().indexOf(q) >= 0;
+    });
+  }
+
+  function renderList() {
+    var items = getVisible();
+    var urgentCount = items.filter(function (m) { return m.days_left !== null && m.days_left <= 7; }).length;
+    var savedCount = allMatches.filter(function (m) { return m.user_status === 'saved'; }).length;
+    var budgetSum = items.reduce(function (acc, m) { return acc + (m.currency === 'EUR' && m.budget ? m.budget : 0); }, 0);
+
+    document.getElementById('kpiTotal').textContent = String(items.length);
+    document.getElementById('kpiUrgent').textContent = String(urgentCount);
+    document.getElementById('kpiSaved').textContent = String(savedCount);
+    document.getElementById('kpiBudget').textContent = budgetSum >= 1e6
+      ? (budgetSum / 1e6).toFixed(1).replace('.', ',') + ' M€'
+      : Math.round(budgetSum).toLocaleString('es-ES') + ' €';
+
+    statusEl.textContent = items.length ? ('Mostrando ' + items.length + ' oportunidades.') : 'No hay oportunidades en esta vista.';
+    listEl.innerHTML = items.map(function (m) {
+      var dl = m.deadline ? new Date(m.deadline).toLocaleDateString('es-ES') : 'No indicado';
+      var cls = m.user_status === 'saved' ? ' saved' : (m.user_status === 'discarded' ? ' discarded' : '');
+      return '<article class="opp-card' + cls + '">' +
+        '<div class="opp-top"><span>' + esc(KIND_LABEL[m.kind] || m.kind) + ' · ' + esc(m.category_label) + '</span>' +
+        '<span class="opp-badge">Encaje ' + Math.round(m.score) + '</span></div>' +
+        '<h3 style="margin:4px 0 6px"><a href="' + esc(m.url) + '" target="_blank" rel="noreferrer">' + esc(m.title) + '</a></h3>' +
+        '<div style="font-size:13.5px;color:#5d6862">' + esc(m.org) + (m.place ? ' · ' + esc(m.place) : '') + ' · ' + esc(fmtMoney(m.budget, m.currency)) + ' · Cierre: ' + esc(dl) + '</div>' +
+        '<div class="opp-actions">' +
+          '<a class="btn-sm primary" href="' + esc(m.url) + '" target="_blank" rel="noreferrer">Ver ficha oficial →</a>' +
+          '<button class="btn-sm" data-key="' + esc(m.item_key) + '" data-next="saved">' + (m.user_status === 'saved' ? '★ Guardada' : 'Guardar') + '</button>' +
+          '<button class="btn-sm" data-key="' + esc(m.item_key) + '" data-next="discarded">Descartar</button>' +
+        '</div></article>';
+    }).join('');
+  }
+
+  function loadMatches() {
+    if (!token) {
+      badgeEl.textContent = 'Enlace sin token';
+      statusEl.textContent = 'Abre este panel desde el enlace personalizado de tu correo diario.';
+      return;
+    }
+    statusEl.textContent = 'Cargando oportunidades...';
+    rpc('portal_list_matches', { p_token: token, p_status: activeFilter || null })
+      .then(function (data) {
+        if (!data || !data.ok) {
+          badgeEl.textContent = 'Token no válido';
+          statusEl.textContent = 'El enlace no es válido o la suscripción no está activa.';
+          allMatches = [];
+          renderList();
+          return;
+        }
+        badgeEl.textContent = data.subscriber.company_name + ' · Plan ' + data.subscriber.plan;
+        allMatches = data.matches || [];
+        renderList();
+      })
+      .catch(function (err) {
+        statusEl.textContent = 'Error cargando el panel: ' + err.message;
+      });
+  }
+
+  document.querySelectorAll('.pill-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.pill-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      activeFilter = btn.getAttribute('data-status') || '';
+      loadMatches();
+    });
+  });
+
+  searchEl.addEventListener('input', renderList);
+  kindEl.addEventListener('change', renderList);
+
+  document.getElementById('exportCsvBtn').addEventListener('click', function () {
+    var rows = getVisible();
+    var header = ['tipo', 'titulo', 'organismo', 'zona', 'presupuesto', 'moneda', 'cierre', 'encaje', 'estado', 'url'];
+    var csv = [header.join(';')].concat(rows.map(function (m) {
+      return [m.kind, m.title, m.org, m.place, m.budget ?? '', m.currency, m.deadline ?? '', Math.round(m.score), m.user_status, m.url]
+        .map(function (v) { return '"' + String(v ?? '').replace(/"/g, '""') + '"'; }).join(';');
+    })).join('\n');
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'atalaya-oportunidades.csv';
+    a.click();
+  });
+
+  listEl.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-key]');
+    if (!btn) return;
+    rpc('portal_set_match_status', {
+      p_token: token,
+      p_item_key: btn.getAttribute('data-key'),
+      p_status: btn.getAttribute('data-next')
+    }).then(loadMatches);
+  });
+
+  loadMatches();
+})();
+</script>
+</body>
+</html>
