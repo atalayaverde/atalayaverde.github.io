@@ -8,26 +8,33 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
 <style>
-  .panel-wrap{max-width:1040px;margin:0 auto;padding:28px 20px 64px}
+  .panel-wrap{max-width:1080px;margin:0 auto;padding:28px 20px 64px}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0 22px}
   .kpi{background:#fff;border:1px solid #e1dccd;border-radius:12px;padding:14px 16px}
   .kpi b{display:block;font-size:24px;color:#12392d}
   .kpi span{font-size:12.5px;color:#5d6862}
   .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:14px 0 18px}
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  .pill-btn{border:1px solid #d5cfbe;background:#fff;padding:7px 13px;border-radius:999px;cursor:pointer;font-weight:600;font-size:13px}
+  .pill-btn{border:1px solid #d5cfbe;background:#fff;padding:7px 12px;border-radius:999px;cursor:pointer;font-weight:600;font-size:12.5px}
   .pill-btn.active{background:#12392d;color:#c4e456;border-color:#12392d}
   .search-box{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .search-box input,.search-box select{padding:8px 11px;border:1px solid #d5cfbe;border-radius:8px;background:#fff;font-size:13.5px}
   .opp-grid{display:grid;gap:14px}
   .opp-card{background:#fff;border:1px solid #e1dccd;border-left:5px solid #1d5c3f;border-radius:12px;padding:16px 18px}
-  .opp-card.saved{border-left-color:#b7791f;background:#fffdf7}
-  .opp-card.discarded{opacity:.65}
+  .opp-card.saved,.opp-card.studying,.opp-card.preparing{border-left-color:#b7791f;background:#fffdf7}
+  .opp-card.submitted{border-left-color:#1f5fbf;background:#f7faff}
+  .opp-card.discarded{opacity:.6}
   .opp-top{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;color:#5d6862;margin-bottom:6px}
   .opp-badge{background:#12392d;color:#c4e456;font-weight:800;padding:4px 9px;border-radius:8px}
-  .opp-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
-  .btn-sm{padding:6px 12px;border-radius:8px;border:1px solid #d5cfbe;background:#f7f5ee;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;color:#1b2420}
+  .opp-summary{margin-top:8px;padding:8px 10px;background:#f7f5ee;border-radius:8px;font-size:12.5px;color:#334039}
+  .opp-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+  .btn-sm{padding:6px 11px;border-radius:8px;border:1px solid #d5cfbe;background:#f7f5ee;cursor:pointer;font-size:12.5px;font-weight:600;text-decoration:none;color:#1b2420}
   .btn-sm.primary{background:#12392d;color:#c4e456;border-color:#12392d}
+  .note-input{flex:1;min-width:180px;padding:6px 9px;border:1px solid #d5cfbe;border-radius:8px;font-size:12.5px}
+  details.settings-box{background:#fff;border:1px solid #e1dccd;border-radius:12px;padding:14px 18px;margin-bottom:20px}
+  details.settings-box summary{cursor:pointer;font-weight:700;color:#12392d}
+  .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}
+  .settings-grid input{width:100%;padding:8px;border:1px solid #d5cfbe;border-radius:8px;margin-top:4px;box-sizing:border-box}
 </style>
 </head>
 <body>
@@ -45,20 +52,51 @@
 
 <main class="panel-wrap">
   <h1>Radar de oportunidades</h1>
-  <p class="sub">El 100 % de licitaciones y ayudas que encajan con tu perfil, ordenadas por relevancia y plazo.</p>
+  <p class="sub">El 100 % de licitaciones y ayudas que encajan con tu perfil, con resumen clave, gestión de estado y equipo.</p>
 
   <section class="kpis" aria-label="Resumen">
     <div class="kpi"><b id="kpiTotal">0</b><span>Coincidencias activas</span></div>
     <div class="kpi"><b id="kpiUrgent">0</b><span>Cierran en ≤ 7 días</span></div>
-    <div class="kpi"><b id="kpiSaved">0</b><span>Guardadas</span></div>
+    <div class="kpi"><b id="kpiSaved">0</b><span>En seguimiento</span></div>
     <div class="kpi"><b id="kpiBudget">0 €</b><span>Presupuesto visible</span></div>
   </section>
+
+  <details class="settings-box">
+    <summary>Ajustes de filtrado fino, alertas urgentes y equipo (hasta 5 destinatarios)</summary>
+    <div class="settings-grid">
+      <div>
+        <label><strong>Palabras clave obligatorias</strong> (separadas por coma)
+          <input id="kwInclude" type="text" placeholder="biomasa, desbroce, RAEE">
+        </label>
+        <label style="display:block;margin-top:10px"><strong>Palabras a excluir</strong> (separadas por coma)
+          <input id="kwExclude" type="text" placeholder="limpieza edificios, vehículos">
+        </label>
+        <label style="display:block;margin-top:10px"><strong>Webhook urgente (Slack/Discord HTTPS)</strong>
+          <input id="urgentWebhook" type="url" placeholder="https://hooks.slack.com/services/...">
+        </label>
+        <button id="savePrefsBtn" class="btn-sm primary" type="button" style="margin-top:10px">Guardar preferencias</button>
+        <span id="prefsMsg" class="note" style="margin-left:8px"></span>
+      </div>
+      <div>
+        <strong>Miembros del equipo</strong>
+        <p class="note" style="margin:4px 0 8px">Plan Pro/Prueba: 1 correo · Plan Equipo: hasta 5 destinatarios.</p>
+        <div style="display:flex;gap:8px">
+          <input id="teamEmailInput" type="email" placeholder="compañero@empresa.es" style="margin-top:0">
+          <button id="addTeamBtn" class="btn-sm primary" type="button">Añadir</button>
+        </div>
+        <ul id="teamList" style="list-style:none;padding:0;margin:10px 0 0;display:grid;gap:6px;font-size:13px"></ul>
+      </div>
+    </div>
+  </details>
 
   <div class="controls">
     <div class="toolbar" role="group" aria-label="Filtrar por estado">
       <button class="pill-btn active" data-status="">Todas</button>
       <button class="pill-btn" data-status="new">Nuevas</button>
       <button class="pill-btn" data-status="saved">Guardadas</button>
+      <button class="pill-btn" data-status="studying">En estudio</button>
+      <button class="pill-btn" data-status="preparing">Preparando</button>
+      <button class="pill-btn" data-status="submitted">Presentada</button>
       <button class="pill-btn" data-status="discarded">Descartadas</button>
     </div>
     <div class="search-box">
@@ -130,19 +168,19 @@
     return allMatches.filter(function (m) {
       if (k && m.kind !== k) return false;
       if (!q) return true;
-      return (m.title + ' ' + m.org + ' ' + m.place + ' ' + m.category_label).toLowerCase().indexOf(q) >= 0;
+      return (m.title + ' ' + m.org + ' ' + m.place + ' ' + m.category_label + ' ' + (m.internal_note || '')).toLowerCase().indexOf(q) >= 0;
     });
   }
 
   function renderList() {
     var items = getVisible();
     var urgentCount = items.filter(function (m) { return m.days_left !== null && m.days_left <= 7; }).length;
-    var savedCount = allMatches.filter(function (m) { return m.user_status === 'saved'; }).length;
+    var activeCrm = allMatches.filter(function (m) { return ['saved', 'studying', 'preparing', 'submitted'].indexOf(m.user_status) >= 0; }).length;
     var budgetSum = items.reduce(function (acc, m) { return acc + (m.currency === 'EUR' && m.budget ? m.budget : 0); }, 0);
 
     document.getElementById('kpiTotal').textContent = String(items.length);
     document.getElementById('kpiUrgent').textContent = String(urgentCount);
-    document.getElementById('kpiSaved').textContent = String(savedCount);
+    document.getElementById('kpiSaved').textContent = String(activeCrm);
     document.getElementById('kpiBudget').textContent = budgetSum >= 1e6
       ? (budgetSum / 1e6).toFixed(1).replace('.', ',') + ' M€'
       : Math.round(budgetSum).toLocaleString('es-ES') + ' €';
@@ -150,18 +188,43 @@
     statusEl.textContent = items.length ? ('Mostrando ' + items.length + ' oportunidades.') : 'No hay oportunidades en esta vista.';
     listEl.innerHTML = items.map(function (m) {
       var dl = m.deadline ? new Date(m.deadline).toLocaleDateString('es-ES') : 'No indicado';
-      var cls = m.user_status === 'saved' ? ' saved' : (m.user_status === 'discarded' ? ' discarded' : '');
-      return '<article class="opp-card' + cls + '">' +
+      var sum = m.summary_json || {};
+      var summaryHtml = sum.alerta_clave
+        ? '<div class="opp-summary"><strong>Resumen rápido:</strong> ' + esc(sum.alerta_clave) + ' · ' + esc(sum.tipo_contrato || m.category_label) + '</div>'
+        : '';
+      return '<article class="opp-card ' + esc(m.user_status || 'new') + '">' +
         '<div class="opp-top"><span>' + esc(KIND_LABEL[m.kind] || m.kind) + ' · ' + esc(m.category_label) + '</span>' +
         '<span class="opp-badge">Encaje ' + Math.round(m.score) + '</span></div>' +
         '<h3 style="margin:4px 0 6px"><a href="' + esc(m.url) + '" target="_blank" rel="noreferrer">' + esc(m.title) + '</a></h3>' +
         '<div style="font-size:13.5px;color:#5d6862">' + esc(m.org) + (m.place ? ' · ' + esc(m.place) : '') + ' · ' + esc(fmtMoney(m.budget, m.currency)) + ' · Cierre: ' + esc(dl) + '</div>' +
+        summaryHtml +
         '<div class="opp-actions">' +
           '<a class="btn-sm primary" href="' + esc(m.url) + '" target="_blank" rel="noreferrer">Ver ficha oficial →</a>' +
-          '<button class="btn-sm" data-key="' + esc(m.item_key) + '" data-next="saved">' + (m.user_status === 'saved' ? '★ Guardada' : 'Guardar') + '</button>' +
-          '<button class="btn-sm" data-key="' + esc(m.item_key) + '" data-next="discarded">Descartar</button>' +
+          '<select class="btn-sm crm-select" data-key="' + esc(m.item_key) + '" aria-label="Estado">' +
+            '<option value="new"' + (m.user_status === 'new' ? ' selected' : '') + '>Nueva</option>' +
+            '<option value="saved"' + (m.user_status === 'saved' ? ' selected' : '') + '>★ Guardada</option>' +
+            '<option value="studying"' + (m.user_status === 'studying' ? ' selected' : '') + '>En estudio</option>' +
+            '<option value="preparing"' + (m.user_status === 'preparing' ? ' selected' : '') + '>Preparando oferta</option>' +
+            '<option value="submitted"' + (m.user_status === 'submitted' ? ' selected' : '') + '>Presentada</option>' +
+            '<option value="discarded"' + (m.user_status === 'discarded' ? ' selected' : '') + '>Descartada</option>' +
+          '</select>' +
+          '<input class="note-input" type="text" placeholder="Nota interna..." value="' + esc(m.internal_note || '') + '" data-note-for="' + esc(m.item_key) + '">' +
+          '<button class="btn-sm" data-save-note="' + esc(m.item_key) + '" type="button">Guardar nota</button>' +
         '</div></article>';
     }).join('');
+  }
+
+  function loadTeam() {
+    if (!token) return;
+    rpc('portal_list_team', { p_token: token }).then(function (data) {
+      if (!data || !data.ok) return;
+      var ul = document.getElementById('teamList');
+      ul.innerHTML = (data.members || []).map(function (m) {
+        return '<li style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:#f7f5ee;border-radius:6px">' +
+          '<span>' + esc(m.email) + '</span>' +
+          '<button class="btn-sm" data-remove-member="' + esc(m.id) + '" type="button">Quitar</button></li>';
+      }).join('') || '<li class="note">Sin destinatarios adicionales todavía.</li>';
+    }).catch(function () {});
   }
 
   function loadMatches() {
@@ -181,6 +244,10 @@
           return;
         }
         badgeEl.textContent = data.subscriber.company_name + ' · Plan ' + data.subscriber.plan;
+        document.getElementById('kwInclude').value = (data.subscriber.include_keywords || []).join(', ');
+        document.getElementById('kwExclude').value = (data.subscriber.exclude_keywords || []).join(', ');
+        document.getElementById('urgentWebhook').value = data.subscriber.urgent_webhook_url || '';
+
         var upgradeEl = document.getElementById('upgradeBtn');
         var proLink = (cfg.STRIPE_LINKS && cfg.STRIPE_LINKS.pro) || '';
         if (upgradeEl && proLink && data.subscriber.plan === 'trial') {
@@ -189,6 +256,7 @@
         }
         allMatches = data.matches || [];
         renderList();
+        loadTeam();
       })
       .catch(function (err) {
         statusEl.textContent = 'Error cargando el panel: ' + err.message;
@@ -207,11 +275,42 @@
   searchEl.addEventListener('input', renderList);
   kindEl.addEventListener('change', renderList);
 
+  document.getElementById('savePrefsBtn').addEventListener('click', function () {
+    var parseList = function (v) { return v.split(',').map(function (s) { return s.trim(); }).filter(Boolean); };
+    var msgEl = document.getElementById('prefsMsg');
+    msgEl.textContent = 'Guardando...';
+    rpc('portal_update_preferences', {
+      p_token: token,
+      p_include_keywords: parseList(document.getElementById('kwInclude').value),
+      p_exclude_keywords: parseList(document.getElementById('kwExclude').value),
+      p_urgent_webhook_url: document.getElementById('urgentWebhook').value.trim()
+    }).then(function () { msgEl.textContent = 'Guardado.'; }).catch(function (e) { msgEl.textContent = e.message; });
+  });
+
+  document.getElementById('addTeamBtn').addEventListener('click', function () {
+    var em = document.getElementById('teamEmailInput').value.trim();
+    if (!em) return;
+    rpc('portal_add_team_member', { p_token: token, p_email: em }).then(function (r) {
+      if (r && r.ok) {
+        document.getElementById('teamEmailInput').value = '';
+        loadTeam();
+      } else {
+        alert((r && r.error === 'team_limit_reached') ? ('Límite de destinatarios alcanzado (' + r.limit + ') para tu plan.') : 'No se pudo añadir.');
+      }
+    });
+  });
+
+  document.getElementById('teamList').addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-remove-member]');
+    if (!btn) return;
+    rpc('portal_remove_team_member', { p_token: token, p_member_id: btn.getAttribute('data-remove-member') }).then(loadTeam);
+  });
+
   document.getElementById('exportCsvBtn').addEventListener('click', function () {
     var rows = getVisible();
-    var header = ['tipo', 'titulo', 'organismo', 'zona', 'presupuesto', 'moneda', 'cierre', 'encaje', 'estado', 'url'];
+    var header = ['tipo', 'titulo', 'organismo', 'zona', 'presupuesto', 'moneda', 'cierre', 'encaje', 'estado', 'nota', 'url'];
     var csv = [header.join(';')].concat(rows.map(function (m) {
-      return [m.kind, m.title, m.org, m.place, m.budget ?? '', m.currency, m.deadline ?? '', Math.round(m.score), m.user_status, m.url]
+      return [m.kind, m.title, m.org, m.place, m.budget ?? '', m.currency, m.deadline ?? '', Math.round(m.score), m.user_status, m.internal_note ?? '', m.url]
         .map(function (v) { return '"' + String(v ?? '').replace(/"/g, '""') + '"'; }).join(';');
     })).join('\n');
     var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -221,14 +320,29 @@
     a.click();
   });
 
-  listEl.addEventListener('click', function (ev) {
-    var btn = ev.target.closest('button[data-key]');
-    if (!btn) return;
+  listEl.addEventListener('change', function (ev) {
+    var sel = ev.target.closest('select.crm-select');
+    if (!sel) return;
     rpc('portal_set_match_status', {
       p_token: token,
-      p_item_key: btn.getAttribute('data-key'),
-      p_status: btn.getAttribute('data-next')
+      p_item_key: sel.getAttribute('data-key'),
+      p_status: sel.value
     }).then(loadMatches);
+  });
+
+  listEl.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-save-note]');
+    if (!btn) return;
+    var key = btn.getAttribute('data-save-note');
+    var card = btn.closest('article');
+    var note = card.querySelector('input[data-note-for]').value;
+    var st = card.querySelector('select.crm-select').value;
+    rpc('portal_set_match_status', {
+      p_token: token,
+      p_item_key: key,
+      p_status: st,
+      p_note: note
+    }).then(function () { btn.textContent = 'Nota guardada ✓'; });
   });
 
   loadMatches();
