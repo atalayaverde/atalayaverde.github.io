@@ -7,6 +7,9 @@ window.AV_CONFIG = {
   // false = prototipo: la solicitud se guarda pero todavía NO se envían correos (se avisa al usuario).
   // Poner true cuando el envío esté activo (ver docs/PLAN-ENVIO.md).
   EMAIL_LIVE: true,
-  // Integración de pagos (futuro): rellenar con los Payment Links de Stripe. Sin cuenta de pago creada todavía.
-  STRIPE_LINKS: { pro: '', equipo: '' },
+  // Integración de pagos (Stripe Payment Links).
+  STRIPE_LINKS: {
+    pro: 'https://buy.stripe.com/4gM9AU7sX0PEfyd0RUdby00',
+    equipo: 'https://buy.stripe.com/aFa3cw5kPaqefydasudby01',
+  },
 };
