@@ -35,7 +35,10 @@
   <div class="wrap">
     <nav class="nav">
       <a class="brand" href="index.html"><i></i>Atalaya Verde</a>
-      <span id="companyBadge" style="color:#cfe3d8;font-size:14px;font-weight:600">Cargando panel...</span>
+      <div style="display:flex;gap:12px;align-items:center">
+        <a id="upgradeBtn" class="btn-sm primary" href="#" hidden>Pasar a Pro (29 €/mes)</a>
+        <span id="companyBadge" style="color:#cfe3d8;font-size:14px;font-weight:600">Cargando panel...</span>
+      </div>
     </nav>
   </div>
 </header>
@@ -178,6 +181,12 @@
           return;
         }
         badgeEl.textContent = data.subscriber.company_name + ' · Plan ' + data.subscriber.plan;
+        var upgradeEl = document.getElementById('upgradeBtn');
+        var proLink = (cfg.STRIPE_LINKS && cfg.STRIPE_LINKS.pro) || '';
+        if (upgradeEl && proLink && data.subscriber.plan === 'trial') {
+          upgradeEl.href = proLink;
+          upgradeEl.hidden = false;
+        }
         allMatches = data.matches || [];
         renderList();
       })
