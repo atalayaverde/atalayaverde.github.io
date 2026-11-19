@@ -339,7 +339,17 @@
         document.getElementById('teamEmailInput').value = '';
         loadTeam();
       } else {
-        alert((r && r.error === 'team_limit_reached') ? ('Límite de destinatarios alcanzado (' + r.limit + ') para tu plan.') : 'No se pudo añadir.');
+        var teamErr = r && r.error;
+        var teamMsg = teamErr === 'team_limit_reached'
+          ? ('Límite de destinatarios alcanzado (' + r.limit + ') para tu plan.')
+          : teamErr === 'team_requires_equipo_plan'
+          ? 'Los miembros de equipo están disponibles solo en el plan Equipo.'
+          : teamErr === 'recipient_rejected_invites'
+          ? 'Esa persona rechazó previamente la invitación y no puede volver a ser invitada.'
+          : teamErr === 'invalid_or_expired_session'
+          ? 'Tu sesión ha caducado. Abre el panel desde el último correo.'
+          : 'No se pudo añadir.';
+        alert(teamMsg);
       }
     });
   });
