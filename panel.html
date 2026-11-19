@@ -317,7 +317,13 @@
       p_include_keywords: parseList(document.getElementById('kwInclude').value),
       p_exclude_keywords: parseList(document.getElementById('kwExclude').value),
       p_urgent_webhook_url: document.getElementById('urgentWebhook').value.trim()
-    }).then(function () { msgEl.textContent = 'Guardado.'; }).catch(function (e) { msgEl.textContent = e.message; });
+    }).then(function (r) {
+      if (r && r.ok) {
+        msgEl.textContent = 'Guardado.';
+      } else {
+        msgEl.textContent = 'Error: ' + ((r && r.error) || 'no se pudieron guardar las preferencias');
+      }
+    }).catch(function (e) { msgEl.textContent = e.message; });
   });
 
   document.getElementById('addTeamBtn').addEventListener('click', function () {
