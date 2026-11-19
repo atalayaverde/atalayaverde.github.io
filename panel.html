@@ -483,8 +483,15 @@
 
   function renderAiResult(action, payload) {
     if (!payload || !payload.ok) {
-      var err = (payload && payload.error) ? esc(payload.error) : 'No se pudo completar el análisis.';
-      return '<p>' + err + '</p>';
+      var AI_ERRORS = {
+        invalid_expired_or_quota_exceeded: 'Tu acceso ha caducado o has agotado el límite. Vuelve a entrar desde el enlace de tu correo.',
+        daily_ai_limit_reached: 'Has llegado al límite diario de 15 análisis. Vuelve mañana.'
+      };
+      var code = payload && payload.error;
+      var err = (code && Object.prototype.hasOwnProperty.call(AI_ERRORS, code))
+        ? AI_ERRORS[code]
+        : 'No se pudo completar el análisis. Inténtalo de nuevo en unos minutos.';
+      return '<p>' + esc(err) + '</p>';
     }
     var res = payload.result || payload;
     var html = aiMetaBlock(res);
@@ -497,7 +504,7 @@
         html += '<table><thead><tr><th>Requisito</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody>';
         res.checks.forEach(function (c) {
           var st = String(c.status || 'dudoso');
-          html += '<tr><td>' + esc(c.requirement) + '</td><td><span class="ai-status-pill ' + esc(st) + '">' + esc(st) + '</span></td><td>' + esc(c.evidence) + (c.missing_action ? ' · <b>Acción:</b> ' + esc(c.missing_action) : '') + '</td></tr>';
+          html += '<tr><td>' + esc(c.requirement || c.item || c.requisito || '') + '</td><td><span class="ai-status-pill ' + esc(st) + '">' + esc(st) + '</span></td><td>' + esc(c.evidence || c.details || c.detalle || '') + (c.missing_action || c.accion ? ' · <b>Acción:</b> ' + esc(c.missing_action || c.accion) : '') + '</td></tr>';
         });
         html += '</tbody></table>';
       }
@@ -517,11 +524,13 @@
         '</div></div>';
       (res.sections || []).forEach(function (s) {
         var pts = s.weight_points ? ' (' + s.weight_points + ')' : '';
-        mdParts.push('## ' + (s.criterion_title || 'Apartado') + pts, '', s.draft_markdown || '', '');
-        var formatted = esc(s.draft_markdown || '').replace(/\[COMPLETAR[^\]]*\]/g, function (m) {
+        var secTitle = s.criterion_title || s.title || s.titulo || 'Apartado';
+        var secMd = s.draft_markdown || s.contenido || s.content || s.texto || '';
+        mdParts.push('## ' + secTitle + pts, '', secMd, '');
+        var formatted = esc(secMd).replace(/\[COMPLETAR[^\]]*\]/g, function (m) {
           return '<span class="ai-placeholder">' + m + '</span>';
         });
-        html += '<div class="ai-draft-sec"><h4 style="font-size:14px;margin:0 0 6px">' + esc((s.criterion_title || 'Apartado') + pts) + '</h4>' +
+        html += '<div class="ai-draft-sec"><h4 style="font-size:14px;margin:0 0 6px">' + esc(secTitle + pts) + '</h4>' +
           '<p style="white-space:pre-wrap;margin:0;line-height:1.5">' + formatted + '</p></div>';
       });
       lastDraftMarkdown = res.full_markdown || mdParts.join('\n').trim();
