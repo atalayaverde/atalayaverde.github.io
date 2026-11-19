@@ -32,6 +32,15 @@
 
   // plan elegido en la sección de precios (solo informativo durante la prueba; punto de integración con Stripe más abajo)
   document.querySelectorAll('[data-plan]').forEach((a) => a.addEventListener('click', () => { sessionStorage.setItem('av_plan', a.dataset.plan); }));
+  // Botones de pago Stripe: solo se muestran si el enlace del plan está en config.js.
+  const LINKS = CFG.STRIPE_LINKS || {};
+  let anyPay = false;
+  document.querySelectorAll('[data-pay]').forEach((a) => {
+    const url = LINKS[a.dataset.pay] || '';
+    if (!/^https:\/\/buy\.stripe\.com\//.test(url)) { a.hidden = true; return; }
+    a.href = url; a.rel = 'noopener'; anyPay = true;
+  });
+  if (anyPay) document.querySelectorAll('[data-pay-box]').forEach((el) => { el.hidden = false; });
 
   const msg = (cls, html) => { $('#msg').innerHTML = `<div class="msg ${cls}">${html}</div>`; };
   $('#form').addEventListener('submit', async (e) => {
@@ -66,5 +75,5 @@
     } catch { msg('err', 'No hay conexión con el servidor. Inténtalo de nuevo.'); }
     btn.disabled = false; btn.textContent = 'Quiero mi prueba gratuita de 14 días';
   });
-  // PUNTO DE INTEGRACIÓN STRIPE (futuro): tras confirmar el correo, enlazar a CFG.STRIPE_LINKS[plan] + '?prefilled_email=' + email
+  // Desde el panel, el pago lleva client_reference_id (id del suscriptor) para asignar el plan aunque el correo de pago sea otro.
 })();

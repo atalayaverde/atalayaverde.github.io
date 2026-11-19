@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css?v=20261119p">
+<title>Pago recibido · Atalaya Verde</title>
+<link rel="canonical" href="https://atalayaverde.github.io/gracias.html">
+</head>
+<body>
+<header style="background:#12392d"><div class="wrap"><nav class="nav"><a class="brand" href="index.html"><i></i>Atalaya Verde</a></nav></div></header>
+<main class="wrap">
+  <div class="center"><div>
+    <div class="big">✅</div>
+    <h1 style="font:700 32px Georgia,serif;color:#12392d;margin:10px 0">¡Gracias! Pago recibido</h1>
+    <p id="p" style="color:#5d6862;max-width:32em;margin:0 auto 14px">Tu plan de pago se activa solo en unos minutos. Stripe te enviará el recibo por correo.</p>
+    <p style="color:#5d6862;max-width:32em;margin:0 auto 20px">Sigue usando el enlace de tu panel que te llega por correo. Si pagaste con un correo distinto al de tu cuenta de Atalaya Verde y no ves el plan activo en tu panel, escríbenos a <a href="mailto:pajonarias@gmail.com">pajonarias@gmail.com</a> y lo dejamos listo.</p>
+    <p style="color:#5d6862;max-width:32em;margin:0 auto 20px">Puedes cancelar cuando quieras: consulta las <a href="condiciones.html">Condiciones de contratación</a>.</p>
+    <a class="btn" style="background:#12392d;color:#c4e456" href="index.html">Volver al inicio</a>
+  </div></div>
+</main>
+<footer><div class="wrap"><a href="index.html">Inicio</a> · <a href="privacidad.html">Política de privacidad</a> · <a href="aviso-legal.html">Aviso legal</a> · <a href="cookies.html">Cookies</a> · <a href="condiciones.html">Condiciones de contratación</a></div></footer>
+<script>
+(function () {
+  var plan = new URLSearchParams(location.search).get('plan');
+  var name = plan === 'equipo' ? 'Equipo' : (plan === 'pro' ? 'Profesional' : '');
+  if (name) document.getElementById('p').textContent = 'Tu plan ' + name + ' se activa solo en unos minutos. Stripe te enviará el recibo por correo.';
+})();
+</script>
+</body>
+</html>

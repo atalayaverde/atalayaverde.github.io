@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>Panel de oportunidades · Atalaya Verde</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=20261119p">
 <style>
   .panel-wrap{max-width:1080px;margin:0 auto;padding:28px 20px 64px}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0 22px}
@@ -54,6 +54,8 @@
   .ai-light.big{font-size:14px;padding:5px 12px;margin-right:6px}
   .ai-missing-box ul{margin:6px 0 0;padding-left:20px}
   .ai-missing-box li{margin:3px 0}
+  #planesPago{background:#fffbea;border:1px solid #e7d98f;border-radius:12px;margin:0 0 20px}
+  #planesPago[hidden]{display:none}
   details.howto-box{background:#f3f8ef;border:1px solid #c9dfbf;border-radius:12px;padding:14px 18px;margin:0 0 20px}
   details.howto-box summary{cursor:pointer;font-weight:800;color:#12392d;font-size:16px}
   .howto-steps{margin:12px 0 0;padding-left:22px;line-height:1.55;font-size:14px}
@@ -78,7 +80,7 @@
     <nav class="nav">
       <a class="brand" href="index.html"><i></i>Atalaya Verde</a>
       <div style="display:flex;gap:12px;align-items:center">
-        <a id="upgradeBtn" class="btn-sm primary" href="#" hidden>Pasar a Profesional (19 €/mes)</a>
+        <a id="upgradeBtn" class="btn-sm primary" href="#planesPago" hidden>Pasar a un plan de pago</a>
         <span id="companyBadge" style="color:#cfe3d8;font-size:14px;font-weight:600">Cargando panel...</span>
       </div>
     </nav>
@@ -88,6 +90,18 @@
 <main class="panel-wrap">
   <h1>Radar de oportunidades</h1>
   <p class="sub">Las licitaciones y ayudas que encajan con tu perfil, con resumen clave, gestión de estado y equipo.</p>
+
+  <section class="howto-box" id="planesPago" hidden style="padding:16px 18px">
+    <strong>¿Te convence Atalaya? Pasa a un plan de pago</strong>
+    <p class="hint" style="margin:6px 0 10px">Tu prueba gratis sigue activa hasta que termine. Al pagar, tu plan se activa solo en esta misma cuenta.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <a class="btn-pay" data-pay="pro" href="#">Profesional · 19 €/mes</a>
+      <a class="btn-pay alt" data-pay="pro_anual" href="#">Profesional · 190 €/año</a>
+      <a class="btn-pay" data-pay="equipo" href="#">Equipo · 39 €/mes</a>
+      <a class="btn-pay alt" data-pay="equipo_anual" href="#">Equipo · 390 €/año</a>
+    </div>
+    <p class="hint" style="margin:10px 0 0">🔒 Pago seguro con Stripe. Puedes cancelar cuando quieras. Al pagar aceptas las <a href="condiciones.html">Condiciones de contratación</a>.</p>
+  </section>
 
   <details class="howto-box" id="howtoBox">
     <summary>❓ Cómo funciona (3 pasos)</summary>
@@ -230,7 +244,7 @@
   <p class="note"><a href="index.html">Inicio</a> · <a href="privacidad.html">Política de privacidad</a> · <a href="aviso-legal.html">Aviso legal</a> · <a href="cookies.html">Cookies</a> · <a href="condiciones.html">Condiciones de contratación</a></p>
 </main>
 
-<script src="config.js"></script>
+<script src="config.js?v=20261119p"></script>
 <script>
 (function () {
   var cfg = window.AV_CONFIG || {};
@@ -276,6 +290,31 @@
   }
 
   var PLAN_LABEL = { trial: 'Prueba gratis', pro: 'Pro', equipo: 'Equipo' };
+
+  // Botones de pago Stripe: se muestran solo en plan de prueba y si hay enlaces en config.js.
+  // client_reference_id = id del suscriptor: el webhook asigna el plan a esta cuenta aunque se pague con otro correo.
+  function setupPayButtons(sub) {
+    sub = sub || {};
+    var links = cfg.STRIPE_LINKS || {};
+    var box = document.getElementById('planesPago');
+    var upgradeEl = document.getElementById('upgradeBtn');
+    var plan = String(sub.plan || '').trim().toLowerCase();
+    var any = false;
+    document.querySelectorAll('#planesPago [data-pay]').forEach(function (a) {
+      var url = links[a.getAttribute('data-pay')] || '';
+      if (!/^https:\/\/buy\.stripe\.com\//.test(url)) { a.hidden = true; return; }
+      var params = [];
+      if (/^[0-9a-f-]{36}$/i.test(String(sub.id || ''))) params.push('client_reference_id=' + encodeURIComponent(sub.id));
+      if (sub.email) params.push('prefilled_email=' + encodeURIComponent(sub.email));
+      a.href = url + (params.length ? (url.indexOf('?') >= 0 ? '&' : '?') + params.join('&') : '');
+      a.rel = 'noopener';
+      a.hidden = false;
+      any = true;
+    });
+    var show = any && (plan === 'trial' || plan === '');
+    if (box) box.hidden = !show;
+    if (upgradeEl) upgradeEl.hidden = !show;
+  }
 
   function headerLabel(sub) {
     sub = sub || {};
@@ -379,13 +418,7 @@
         document.getElementById('kwExclude').value = (data.subscriber.exclude_keywords || []).join(', ');
         document.getElementById('urgentWebhook').value = data.subscriber.urgent_webhook_url || '';
 
-        var upgradeEl = document.getElementById('upgradeBtn');
-        var proLink = (cfg.STRIPE_LINKS && cfg.STRIPE_LINKS.pro) || '';
-        if (upgradeEl && proLink && data.subscriber.plan === 'trial') {
-          var sep = proLink.indexOf('?') >= 0 ? '&' : '?';
-          upgradeEl.href = proLink + sep + 'client_reference_id=' + encodeURIComponent(data.subscriber.id || '');
-          upgradeEl.hidden = false;
-        }
+        setupPayButtons(data.subscriber);
         allMatches = data.matches || [];
         renderList();
         loadTeam();
