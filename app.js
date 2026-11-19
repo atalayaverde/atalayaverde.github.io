@@ -18,7 +18,8 @@
   $('#ccaa').innerHTML = Object.entries(CCAA).map(([c, [n]]) => chip('ccaa', c, n)).join('');
   $('#eu').innerHTML = Object.entries(EU).map(([c, n]) => chip('eu', c, n)).join('');
   $('#types').innerHTML = TYPES.map(([v, l]) => chip('type', v, l, true)).join('');
-  if (!CFG.EMAIL_LIVE) $('#proto').hidden = false;
+  var protoEl = $('#proto');
+  if (protoEl && !CFG.EMAIL_LIVE) protoEl.hidden = false;
 
   const vals = (name) => [...document.querySelectorAll(`input[name=${name}]:checked`)].map((i) => i.value);
   const renderProvs = () => {

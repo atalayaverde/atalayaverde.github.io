@@ -35,6 +35,14 @@
   details.settings-box summary{cursor:pointer;font-weight:700;color:#12392d}
   .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}
   .settings-grid input{width:100%;padding:8px;border:1px solid #d5cfbe;border-radius:8px;margin-top:4px;box-sizing:border-box}
+  .ai-out{margin-top:12px;padding:12px 14px;background:#f7f5ee;border:1px solid #e1dccd;border-radius:8px;font-size:13px;line-height:1.45}
+  .ai-out h4{margin:0 0 8px;font-size:15px;color:#12392d}
+  .ai-out .ai-tag{font-size:12px;color:#5d6862;background:#fff;border:1px solid #e1dccd;border-radius:8px;padding:8px 10px;margin-bottom:10px}
+  .ai-out table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12.5px}
+  .ai-out th,.ai-out td{border:1px solid #e1dccd;padding:6px 8px;text-align:left;vertical-align:top}
+  .ai-out th{background:#fff;color:#12392d}
+  .ai-light{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:700;font-size:12px}
+  .ai-light.green{background:#e3f2e8;color:#1d5c3f}.ai-light.amber{background:#fff1d6;color:#935400}.ai-light.red{background:#fde8e4;color:#b42318}
 </style>
 </head>
 <body>
@@ -43,7 +51,7 @@
     <nav class="nav">
       <a class="brand" href="index.html"><i></i>Atalaya Verde</a>
       <div style="display:flex;gap:12px;align-items:center">
-        <a id="upgradeBtn" class="btn-sm primary" href="#" hidden>Pasar a Pro (29 €/mes)</a>
+        <a id="upgradeBtn" class="btn-sm primary" href="#" hidden>Pasar a Profesional (19 €/mes)</a>
         <span id="companyBadge" style="color:#cfe3d8;font-size:14px;font-weight:600">Cargando panel...</span>
       </div>
     </nav>
@@ -52,7 +60,7 @@
 
 <main class="panel-wrap">
   <h1>Radar de oportunidades</h1>
-  <p class="sub">El 100 % de licitaciones y ayudas que encajan con tu perfil, con resumen clave, gestión de estado y equipo.</p>
+  <p class="sub">Las licitaciones y ayudas que encajan con tu perfil, con resumen clave, gestión de estado y equipo.</p>
 
   <section class="kpis" aria-label="Resumen">
     <div class="kpi"><b id="kpiTotal">0</b><span>Coincidencias activas</span></div>
@@ -116,9 +124,9 @@
   <div id="oppList" class="opp-grid"></div>
 
   <details class="settings-box" style="margin-top:24px" open>
-    <summary>Agentes IA · Semáforo de elegibilidad y borrador de memoria técnica</summary>
+    <summary>Agentes IA · Análisis de pliegos (Gemini)</summary>
     <p class="note" style="margin:10px 0">
-      ⚠️ <strong>Aviso IA:</strong> Los análisis y borradores se generan con IA (Google Gemini). Nunca garantizan el cumplimiento legal ni sustituyen la revisión de los pliegos oficiales (PCAP/PPT).
+      ⚠️ <strong>Aviso IA:</strong> Resultado generado por IA (Gemini). Orientativo, no es asesoramiento legal; verifica el pliego. No pegues datos personales innecesarios del expediente.
     </p>
     <div class="settings-grid">
       <label>Token IA (incluido en tu correo o facilitado al activar IA)
@@ -140,13 +148,19 @@
     </div>
     <textarea id="aiTenderText" rows="5" placeholder="Pega aquí el texto relevante del PCAP/PPT (solvencia, clasificación, códigos LER y criterios de valoración)..." style="width:100%;margin-top:12px;padding:9px;border:1px solid #d5cfbe;border-radius:8px;box-sizing:border-box"></textarea>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
-      <button class="btn-sm primary" id="runEligibilityBtn" type="button">1. Semáforo: ¿Puedo presentarme?</button>
-      <button class="btn-sm primary" id="runDraftBtn" type="button">2. Borrador memoria técnica</button>
+      <button class="btn-sm primary ai-run" data-action="eligibility" type="button">Semáforo: ¿puedo presentarme?</button>
+      <button class="btn-sm primary ai-run" data-action="technical_draft" type="button">Borrador memoria técnica</button>
+      <button class="btn-sm primary ai-run" data-action="ler_check" type="button">Comprobación LER</button>
+      <button class="btn-sm ai-run" data-action="calendar" type="button">Calendario de plazos</button>
+      <button class="btn-sm ai-run" data-action="partners" type="button">Socios / UTE</button>
+      <button class="btn-sm ai-run" data-action="competitor_intel" type="button">Inteligencia competidores</button>
+      <button class="btn-sm ai-run" data-action="environmental_ler" type="button">Detectar códigos LER</button>
     </div>
-    <pre id="aiResultBox" style="margin-top:12px;padding:12px;background:#f7f5ee;border-radius:8px;white-space:pre-wrap;font-size:12.5px" hidden></pre>
+    <div id="aiResultBox" class="ai-out" hidden aria-live="polite"></div>
   </details>
 
   <p class="note" style="margin-top:28px">Servicio informativo automatizado no oficial. Verifica siempre las bases y pliegos en la fuente oficial antes de presentar oferta.</p>
+  <p class="note"><a href="index.html">Inicio</a> · <a href="privacidad.html">Política de privacidad</a> · <a href="aviso-legal.html">Aviso legal</a> · <a href="cookies.html">Cookies</a> · <a href="condiciones.html">Condiciones de contratación</a></p>
 </main>
 
 <script src="config.js"></script>
@@ -413,28 +427,146 @@
     var textEl = document.getElementById('aiTenderText');
     var outEl = document.getElementById('aiResultBox');
     outEl.hidden = false;
-    outEl.textContent = 'Buscando el texto del pliego...';
+    setAiBox('<p>Buscando el texto del pliego...</p>');
     textEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     rpc('portal_get_tender_text', { p_token: token, p_item_key: aiItemKey })
       .then(function (data) {
         if (data && data.ok && data.excerpt) {
           textEl.value = data.excerpt;
-          outEl.textContent = 'Texto del pliego cargado. Pulsa un agente para analizarlo.';
+          setAiBox('<p>Texto del pliego cargado. Pulsa un agente para analizarlo.</p>');
         } else {
           textEl.value = '';
-          outEl.textContent = 'No hay texto extraíble; pega el PCAP manualmente.';
+          setAiBox('<p>No hay texto extraíble; pega el PCAP manualmente.</p>');
         }
       })
-      .catch(function () { outEl.textContent = 'No hay texto extraíble; pega el PCAP manualmente.'; });
+      .catch(function () { setAiBox('<p>No hay texto extraíble; pega el PCAP manualmente.</p>'); });
   });
 
   function readCapProfile() {
     var splitCsv = function (v) { return v.split(',').map(function (s) { return s.trim(); }).filter(Boolean); };
+    var ler = splitCsv(document.getElementById('capLer').value);
     return {
       annual_turnover_eur: Number(document.getElementById('capTurnover').value) || 0,
       certifications: splitCsv(document.getElementById('capCerts').value),
-      ler_codes: splitCsv(document.getElementById('capLer').value)
+      ler_codes: ler,
+      authorized_ler: ler
     };
+  }
+
+  var AI_NOTICE = 'Resultado generado por IA (Gemini). Orientativo, no es asesoramiento legal; verifica el pliego.';
+
+  function aiMetaBlock(res) {
+    var model = res && res.modelo_ia ? ' · Modelo: ' + esc(res.modelo_ia) : '';
+    var tag = (res && res.generado_por_ia !== false)
+      ? ('<p class="ai-tag" data-ai-generated="true"><strong>' + esc(AI_NOTICE) + '</strong>' + model + '</p>')
+      : '';
+    return tag;
+  }
+
+  function renderAiResult(action, payload) {
+    if (!payload || !payload.ok) {
+      var err = (payload && payload.error) ? esc(payload.error) : 'No se pudo completar el análisis.';
+      return '<p>' + err + '</p>';
+    }
+    var res = payload.result || payload;
+    var html = aiMetaBlock(res);
+
+    if (action === 'eligibility') {
+      var light = String(res.traffic_light || 'amber');
+      html += '<h4>Semáforo de elegibilidad</h4>';
+      html += '<p><span class="ai-light ' + esc(light) + '">' + esc(light.toUpperCase()) + '</span> ' + esc(res.headline) + '</p>';
+      if (res.checks && res.checks.length) {
+        html += '<table><thead><tr><th>Requisito</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody>';
+        res.checks.forEach(function (c) {
+          html += '<tr><td>' + esc(c.requirement) + '</td><td>' + esc(c.status) + '</td><td>' + esc(c.evidence) + (c.missing_action ? ' · ' + esc(c.missing_action) : '') + '</td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+      if (res.missing_items && res.missing_items.length) {
+        html += '<p><strong>Falta revisar:</strong> ' + esc(res.missing_items.join('; ')) + '</p>';
+      }
+      return html;
+    }
+
+    if (action === 'technical_draft') {
+      html += '<h4>' + esc(res.title || 'Borrador de memoria técnica') + '</h4>';
+      (res.sections || []).forEach(function (s) {
+        html += '<h4 style="font-size:14px;margin:12px 0 4px">' + esc(s.criterion_title) + (s.weight_points ? ' (' + esc(s.weight_points) + ')' : '') + '</h4>';
+        html += '<p style="white-space:pre-wrap">' + esc(s.draft_markdown) + '</p>';
+      });
+      return html;
+    }
+
+    if (action === 'ler_check') {
+      var verdictLabels = { compatible: 'Compatible', parcial: 'Parcial', no_compatible: 'No compatible', sin_datos: 'Sin datos suficientes' };
+      html += '<h4>Comprobación LER</h4><p><strong>Veredicto:</strong> ' + esc(verdictLabels[res.verdict] || res.verdict) + '</p>';
+      function lerTable(title, rows, extraCol) {
+        if (!rows || !rows.length) return '';
+        var t = '<h4 style="font-size:14px">' + esc(title) + '</h4><table><thead><tr><th>LER</th><th>Descripción</th><th>Operación</th>';
+        if (extraCol) t += '<th>' + esc(extraCol) + '</th>';
+        t += '</tr></thead><tbody>';
+        rows.forEach(function (r) {
+          t += '<tr><td>' + esc(r.ler) + '</td><td>' + esc(r.description) + '</td><td>' + esc(r.operation) + '</td>';
+          if (extraCol) t += '<td>' + esc(r.reason || '') + '</td>';
+          t += '</tr>';
+        });
+        return t + '</tbody></table>';
+      }
+      html += lerTable('Exigidos en el pliego', res.required);
+      html += lerTable('Coinciden con tu autorización (coincidencia exacta)', res.authorized_match);
+      html += lerTable('Revisar (variante peligroso / no peligroso)', res.revisar, 'Motivo');
+      html += lerTable('Te faltan en tu perfil', res.missing);
+      if (res.notes && res.notes.length) html += '<p>' + esc(res.notes.join(' ')) + '</p>';
+      return html;
+    }
+
+    if (action === 'calendar') {
+      html += '<h4>Calendario del expediente</h4>';
+      if (!res.milestones || !res.milestones.length) return html + '<p>No se han extraído hitos.</p>';
+      html += '<table><thead><tr><th>Fecha</th><th>Hito</th><th>Notas</th></tr></thead><tbody>';
+      res.milestones.forEach(function (m) {
+        html += '<tr><td>' + esc(m.due_at) + '</td><td>' + esc(m.title) + '</td><td>' + esc(m.notes) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+      return html;
+    }
+
+    if (action === 'partners') {
+      html += '<h4>Sugerencias de socios</h4>';
+      if (!res.suggestions || !res.suggestions.length) return html + '<p>No hay sugerencias con los datos disponibles.</p>';
+      html += '<ul>';
+      res.suggestions.forEach(function (s) {
+        html += '<li><strong>' + esc(s.company_name) + '</strong>: ' + esc(s.complementarity_reason) + '</li>';
+      });
+      html += '</ul>';
+      return html;
+    }
+
+    if (action === 'competitor_intel') {
+      html += '<h4>Competencia</h4>';
+      if (res.frequent_winners && res.frequent_winners.length) {
+        html += '<p><strong>Perfiles habituales:</strong> ' + esc(res.frequent_winners.join(', ')) + '</p>';
+      }
+      html += '<p><strong>Rango de baja sugerido:</strong> ' + esc(res.suggested_discount_range) + '</p>';
+      if (res.rationale) html += '<p>' + esc(res.rationale) + '</p>';
+      return html;
+    }
+
+    if (action === 'environmental_ler') {
+      html += '<h4>Códigos LER detectados en el texto</h4>';
+      var codes = res.detected_ler_codes || [];
+      if (!codes.length) return html + '<p>No se han encontrado códigos LER con el formato DD DD DD.</p>';
+      html += '<ul>' + codes.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>';
+      return html;
+    }
+
+  return html + '<pre style="white-space:pre-wrap;font-size:12px">' + esc(JSON.stringify(res, null, 2)) + '</pre>';
+  }
+
+  function setAiBox(html) {
+    var outEl = document.getElementById('aiResultBox');
+    outEl.hidden = false;
+    outEl.innerHTML = html;
   }
 
   document.getElementById('saveCapBtn').addEventListener('click', function () {
@@ -450,21 +582,22 @@
     var aiToken = (aiTokenEl && aiTokenEl.value || '').trim();
     var text = document.getElementById('aiTenderText').value.trim();
     outEl.hidden = false;
-    if (!aiToken) { outEl.textContent = 'Introduce tu token IA (x-ai-token) para ejecutar el agente.'; return; }
-    if (text.length < MIN_TENDER_CHARS) { outEl.textContent = 'Pega al menos ' + MIN_TENDER_CHARS + ' caracteres del pliego.'; return; }
-    outEl.textContent = 'Analizando con Gemini...';
+    if (!aiToken) { setAiBox('<p>Introduce tu token IA (x-ai-token) para ejecutar el agente.</p>'); return; }
+    if (text.length < MIN_TENDER_CHARS) { setAiBox('<p>Pega al menos ' + esc(String(MIN_TENDER_CHARS)) + ' caracteres del pliego.</p>'); return; }
+    setAiBox('<p>Analizando con Gemini...</p>');
     fetch(cfg.SUPABASE_URL + '/functions/v1/ai-agents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-ai-token': aiToken },
       body: JSON.stringify({ action: action, tender_text: text, item_key: aiItemKey, company_profile: readCapProfile() })
     })
       .then(function (r) { return r.json(); })
-      .then(function (data) { outEl.textContent = JSON.stringify(data, null, 2); })
-      .catch(function (e) { outEl.textContent = 'Error llamando al agente IA: ' + e.message; });
+      .then(function (data) { setAiBox(renderAiResult(action, data)); })
+      .catch(function (e) { setAiBox('<p>Error llamando al agente IA: ' + esc(e.message) + '</p>'); });
   }
 
-  document.getElementById('runEligibilityBtn').addEventListener('click', function () { callAiAgent('eligibility'); });
-  document.getElementById('runDraftBtn').addEventListener('click', function () { callAiAgent('technical_draft'); });
+  document.querySelectorAll('button.ai-run').forEach(function (btn) {
+    btn.addEventListener('click', function () { callAiAgent(btn.getAttribute('data-action')); });
+  });
 
   loadMatches();
 })();
