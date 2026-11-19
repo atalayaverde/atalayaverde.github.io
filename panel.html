@@ -43,6 +43,14 @@
   .ai-out th{background:#fff;color:#12392d}
   .ai-light{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:700;font-size:12px}
   .ai-light.green{background:#e3f2e8;color:#1d5c3f}.ai-light.amber{background:#fff1d6;color:#935400}.ai-light.red{background:#fde8e4;color:#b42318}
+  .ai-status-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase}
+  .ai-status-pill.favorable{background:#d1fae5;color:#065f46}
+  .ai-status-pill.dudoso{background:#fef3c7;color:#92400e}
+  .ai-status-pill.faltante{background:#fee2e2;color:#991b1b}
+  .ai-missing-box{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 12px;margin-top:10px;color:#7c2d12;font-size:13px}
+  .ai-draft-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:8px 0 10px;padding-bottom:8px;border-bottom:1px solid #e7e2d3}
+  .ai-draft-sec{background:#fff;border:1px solid #e7e2d3;border-radius:8px;padding:10px 12px;margin-top:8px}
+  .ai-placeholder{background:#fef08a;color:#713f12;padding:1px 4px;border-radius:4px;font-weight:700}
 </style>
 </head>
 <body>
@@ -488,22 +496,35 @@
       if (res.checks && res.checks.length) {
         html += '<table><thead><tr><th>Requisito</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody>';
         res.checks.forEach(function (c) {
-          html += '<tr><td>' + esc(c.requirement) + '</td><td>' + esc(c.status) + '</td><td>' + esc(c.evidence) + (c.missing_action ? ' · ' + esc(c.missing_action) : '') + '</td></tr>';
+          var st = String(c.status || 'dudoso');
+          html += '<tr><td>' + esc(c.requirement) + '</td><td><span class="ai-status-pill ' + esc(st) + '">' + esc(st) + '</span></td><td>' + esc(c.evidence) + (c.missing_action ? ' · <b>Acción:</b> ' + esc(c.missing_action) : '') + '</td></tr>';
         });
         html += '</tbody></table>';
       }
       if (res.missing_items && res.missing_items.length) {
-        html += '<p><strong>Falta revisar:</strong> ' + esc(res.missing_items.join('; ')) + '</p>';
+        html += '<div class="ai-missing-box"><strong>Falta revisar antes de presentar:</strong> ' + esc(res.missing_items.join('; ')) + '</div>';
       }
       return html;
     }
 
     if (action === 'technical_draft') {
-      html += '<h4>' + esc(res.title || 'Borrador de memoria técnica') + '</h4>';
+      var draftTitle = res.title || 'Borrador de memoria técnica';
+      var mdParts = ['> ' + AI_NOTICE, '', '# ' + draftTitle, ''];
+      html += '<div class="ai-draft-head"><h4 style="margin:0">' + esc(draftTitle) + '</h4>' +
+        '<div style="display:flex;gap:8px">' +
+          '<button class="btn-sm" id="copyDraftBtn" type="button">Copiar borrador</button>' +
+          '<button class="btn-sm primary" id="downloadDraftBtn" type="button">Descargar .md</button>' +
+        '</div></div>';
       (res.sections || []).forEach(function (s) {
-        html += '<h4 style="font-size:14px;margin:12px 0 4px">' + esc(s.criterion_title) + (s.weight_points ? ' (' + esc(s.weight_points) + ')' : '') + '</h4>';
-        html += '<p style="white-space:pre-wrap">' + esc(s.draft_markdown) + '</p>';
+        var pts = s.weight_points ? ' (' + s.weight_points + ')' : '';
+        mdParts.push('## ' + (s.criterion_title || 'Apartado') + pts, '', s.draft_markdown || '', '');
+        var formatted = esc(s.draft_markdown || '').replace(/\[COMPLETAR[^\]]*\]/g, function (m) {
+          return '<span class="ai-placeholder">' + m + '</span>';
+        });
+        html += '<div class="ai-draft-sec"><h4 style="font-size:14px;margin:0 0 6px">' + esc((s.criterion_title || 'Apartado') + pts) + '</h4>' +
+          '<p style="white-space:pre-wrap;margin:0;line-height:1.5">' + formatted + '</p></div>';
       });
+      lastDraftMarkdown = res.full_markdown || mdParts.join('\n').trim();
       return html;
     }
 
@@ -587,14 +608,18 @@
       .catch(function (e) { capMsg.textContent = e.message; });
   });
 
+  var lastDraftMarkdown = '';
+
   function callAiAgent(action) {
     var outEl = document.getElementById('aiResultBox');
+    var runBtns = document.querySelectorAll('button.ai-run');
     var aiToken = (aiTokenEl && aiTokenEl.value || '').trim();
     var text = document.getElementById('aiTenderText').value.trim();
     outEl.hidden = false;
     if (!aiToken) { setAiBox('<p>Introduce tu token IA (x-ai-token) para ejecutar el agente.</p>'); return; }
     if (text.length < MIN_TENDER_CHARS) { setAiBox('<p>Pega al menos ' + esc(String(MIN_TENDER_CHARS)) + ' caracteres del pliego.</p>'); return; }
-    setAiBox('<p>Analizando con Gemini...</p>');
+    runBtns.forEach(function (b) { b.disabled = true; });
+    setAiBox('<p><strong>Analizando pliego con Gemini...</strong> esto suele tardar unos segundos.</p>');
     fetch(cfg.SUPABASE_URL + '/functions/v1/ai-agents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-ai-token': aiToken },
@@ -602,8 +627,24 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) { setAiBox(renderAiResult(action, data)); })
-      .catch(function (e) { setAiBox('<p>Error llamando al agente IA: ' + esc(e.message) + '</p>'); });
+      .catch(function (e) { setAiBox('<p>Error llamando al agente IA: ' + esc(e.message) + '</p>'); })
+      .finally(function () { runBtns.forEach(function (b) { b.disabled = false; }); });
   }
+
+  document.getElementById('aiResultBox').addEventListener('click', function (ev) {
+    if (ev.target && ev.target.id === 'copyDraftBtn' && lastDraftMarkdown) {
+      navigator.clipboard.writeText(lastDraftMarkdown).then(function () {
+        ev.target.textContent = 'Copiado ✓';
+      });
+    }
+    if (ev.target && ev.target.id === 'downloadDraftBtn' && lastDraftMarkdown) {
+      var blob = new Blob([lastDraftMarkdown], { type: 'text/markdown;charset=utf-8;' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'borrador-memoria-tecnica.md';
+      a.click();
+    }
+  });
 
   document.querySelectorAll('button.ai-run').forEach(function (btn) {
     btn.addEventListener('click', function () { callAiAgent(btn.getAttribute('data-action')); });
