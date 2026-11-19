@@ -51,6 +51,25 @@
   .ai-draft-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:8px 0 10px;padding-bottom:8px;border-bottom:1px solid #e7e2d3}
   .ai-draft-sec{background:#fff;border:1px solid #e7e2d3;border-radius:8px;padding:10px 12px;margin-top:8px}
   .ai-placeholder{background:#fef08a;color:#713f12;padding:1px 4px;border-radius:4px;font-weight:700}
+  .ai-light.big{font-size:14px;padding:5px 12px;margin-right:6px}
+  .ai-missing-box ul{margin:6px 0 0;padding-left:20px}
+  .ai-missing-box li{margin:3px 0}
+  details.howto-box{background:#f3f8ef;border:1px solid #c9dfbf;border-radius:12px;padding:14px 18px;margin:0 0 20px}
+  details.howto-box summary{cursor:pointer;font-weight:800;color:#12392d;font-size:16px}
+  .howto-steps{margin:12px 0 0;padding-left:22px;line-height:1.55;font-size:14px}
+  .howto-steps > li{margin-bottom:10px}
+  .howto-agents{margin:6px 0 0;padding-left:18px;font-size:13.5px}
+  .howto-agents li{margin:3px 0}
+  @media (max-width:700px){
+    .ai-out table.ai-cards,.ai-out table.ai-cards tbody,.ai-out table.ai-cards tr,.ai-out table.ai-cards td{display:block;width:auto}
+    .ai-out table.ai-cards thead{display:none}
+    .ai-out table.ai-cards{border:0}
+    .ai-out table.ai-cards tr{display:flex;flex-direction:column;background:#fff;border:1px solid #e1dccd;border-radius:10px;padding:10px 12px;margin:0 0 10px}
+    .ai-out table.ai-cards td{border:0;padding:3px 0}
+    .ai-out table.ai-cards td[data-label]:not(.ai-chip-cell)::before{content:attr(data-label);display:block;font-size:11px;font-weight:700;color:#5d6862;text-transform:uppercase;letter-spacing:.02em}
+    .ai-out table.ai-cards td.ai-chip-cell{order:-1;padding-bottom:6px}
+    .ai-out table.ai-cards td:empty{display:none}
+  }
 </style>
 </head>
 <body>
@@ -69,6 +88,31 @@
 <main class="panel-wrap">
   <h1>Radar de oportunidades</h1>
   <p class="sub">Las licitaciones y ayudas que encajan con tu perfil, con resumen clave, gestión de estado y equipo.</p>
+
+  <details class="howto-box" id="howtoBox">
+    <summary>❓ Cómo funciona (3 pasos)</summary>
+    <ol class="howto-steps">
+      <li><strong>Completa tu perfil de empresa.</strong> Baja hasta «Agentes IA», escribe tu facturación anual, tus certificados y clasificaciones (también los distintivos de tu flota, si los tienes) y tus códigos LER autorizados. Pulsa <em>Guardar perfil</em>. Solo hace falta una vez.</li>
+      <li><strong>Pega el pliego.</strong> Abre el pliego (PCAP/PPT), copia el texto (si es largo, basta con los apartados de solvencia, clasificación, códigos LER y criterios de valoración) y pégalo en el cuadro grande. Si la licitación está en tu lista, el botón <em>Analizar con IA</em> de su tarjeta lo intenta rellenar solo.</li>
+      <li><strong>Pulsa un botón de agente</strong> y espera unos segundos:
+        <ul class="howto-agents">
+          <li><strong>Semáforo:</strong> te dice si tu empresa puede presentarse y qué requisitos te faltan.</li>
+          <li><strong>Borrador memoria técnica:</strong> escribe un primer borrador; rellena lo marcado en amarillo.</li>
+          <li><strong>Comprobación LER:</strong> compara los códigos LER del pliego con los tuyos.</li>
+          <li><strong>Calendario de plazos:</strong> saca las fechas importantes (presentación, dudas, apertura).</li>
+          <li><strong>Perfiles de socio:</strong> qué tipo de socio te cubriría lo que te falta, por si vas en UTE.</li>
+          <li><strong>Competencia:</strong> qué perfiles suelen ganar y una baja orientativa.</li>
+          <li><strong>Detectar códigos LER:</strong> lista los códigos LER que aparecen en el texto.</li>
+        </ul>
+      </li>
+    </ol>
+    <p class="note" style="margin:6px 0"><strong>Cómo leer el resultado:</strong> 🟢 VERDE = buena pinta, 🟠 ÁMBAR = hay cosas por revisar, 🔴 ROJO = aún no conviene presentarse. Cada requisito sale como <em>Favorable</em>, <em>Dudoso</em> o <em>Falta</em>, y abajo verás «Falta revisar antes de presentar» con lo que tienes que preparar.</p>
+    <p class="note" style="margin:6px 0">⚠️ Es una ayuda orientativa hecha con IA: comprueba siempre el pliego oficial antes de presentar.</p>
+    <p style="margin:10px 0 0;display:flex;flex-wrap:wrap;gap:8px">
+      <button class="btn-sm primary" id="howtoExampleBtn" type="button">Probar con un ejemplo</button>
+      <a class="btn-sm" href="#aiAgentsBox">Ir a los agentes IA ↓</a>
+    </p>
+  </details>
 
   <section class="kpis" aria-label="Resumen">
     <div class="kpi"><b id="kpiTotal">0</b><span>Coincidencias activas</span></div>
@@ -131,7 +175,7 @@
   <p id="statusMsg" class="note"></p>
   <div id="oppList" class="opp-grid"></div>
 
-  <details class="settings-box" style="margin-top:24px" open>
+  <details class="settings-box" style="margin-top:24px" id="aiAgentsBox" open>
     <summary>Agentes IA · Análisis de pliegos (Gemini)</summary>
     <p class="note" style="margin:10px 0">
       ⚠️ <strong>Aviso IA:</strong> Resultado generado por IA (Gemini). Orientativo, no es asesoramiento legal; verifica el pliego. No pegues datos personales innecesarios del expediente.
@@ -155,17 +199,18 @@
       </label>
     </div>
     <div style="margin-top:10px">
-      <button class="btn-sm" id="saveCapBtn" type="button">Guardar perfil de solvencia/LER</button>
+      <button class="btn-sm" id="saveCapBtn" type="button">Guardar perfil</button>
       <span id="capMsg" class="note" style="margin-left:8px"></span>
     </div>
+    <p class="note" style="margin:12px 0 0">¿No tienes un pliego a mano? <a href="#" id="aiExampleLink">Probar con un ejemplo</a></p>
     <textarea id="aiTenderText" rows="5" placeholder="Pega aquí el texto relevante del PCAP/PPT (solvencia, clasificación, códigos LER y criterios de valoración)..." style="width:100%;margin-top:12px;padding:9px;border:1px solid #d5cfbe;border-radius:8px;box-sizing:border-box"></textarea>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
       <button class="btn-sm primary ai-run" data-action="eligibility" type="button">Semáforo: ¿puedo presentarme?</button>
       <button class="btn-sm primary ai-run" data-action="technical_draft" type="button">Borrador memoria técnica</button>
       <button class="btn-sm primary ai-run" data-action="ler_check" type="button">Comprobación LER</button>
       <button class="btn-sm ai-run" data-action="calendar" type="button">Calendario de plazos</button>
-      <button class="btn-sm ai-run" data-action="partners" type="button">Socios / UTE</button>
-      <button class="btn-sm ai-run" data-action="competitor_intel" type="button">Inteligencia competidores</button>
+      <button class="btn-sm ai-run" data-action="partners" type="button">Perfiles de socio (UTE)</button>
+      <button class="btn-sm ai-run" data-action="competitor_intel" type="button">Competencia</button>
       <button class="btn-sm ai-run" data-action="environmental_ler" type="button">Detectar códigos LER</button>
     </div>
     <div id="aiResultBox" class="ai-out" hidden aria-live="polite"></div>
@@ -228,6 +273,18 @@
     return String(s || '').replace(/[&<>"]/g, function (c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c];
     });
+  }
+
+  var PLAN_LABEL = { trial: 'Prueba gratis', pro: 'Pro', equipo: 'Equipo' };
+
+  function headerLabel(sub) {
+    sub = sub || {};
+    var name = String(sub.company_name || '').trim();
+    if (!name || name === 'null' || name === 'undefined') name = String(sub.email || '').trim() || 'Tu empresa';
+    var planKey = String(sub.plan || '').trim().toLowerCase();
+    var plan = PLAN_LABEL[planKey] || (planKey ? planKey.charAt(0).toUpperCase() + planKey.slice(1) : '');
+    if (!plan) return name;
+    return name + (planKey === 'trial' ? ' · ' + plan : ' · Plan ' + plan);
   }
 
   function fmtMoney(n, cur) {
@@ -317,7 +374,7 @@
           renderList();
           return;
         }
-        badgeEl.textContent = data.subscriber.company_name + ' · Plan ' + data.subscriber.plan;
+        badgeEl.textContent = headerLabel(data.subscriber);
         document.getElementById('kwInclude').value = (data.subscriber.include_keywords || []).join(', ');
         document.getElementById('kwExclude').value = (data.subscriber.exclude_keywords || []).join(', ');
         document.getElementById('urgentWebhook').value = data.subscriber.urgent_webhook_url || '';
@@ -517,6 +574,29 @@
     return tag;
   }
 
+  var LIGHT_MAP = { green: 'green', verde: 'green', amber: 'amber', 'ámbar': 'amber', ambar: 'amber', yellow: 'amber', amarillo: 'amber', naranja: 'amber', orange: 'amber', red: 'red', rojo: 'red' };
+  var LIGHT_LABEL = {
+    red: 'ROJO · Aún no conviene presentarse',
+    amber: 'ÁMBAR · Revisa lo pendiente',
+    green: 'VERDE · Buena pinta, verifica antes de presentar'
+  };
+  var STATUS_LABEL = { favorable: 'Favorable', dudoso: 'Dudoso', faltante: 'Falta' };
+
+  function normalizeLight(v) {
+    return LIGHT_MAP[String(v || '').trim().toLowerCase()] || 'amber';
+  }
+
+  function normalizeCheckStatus(v) {
+    var k = String(v || '').trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(STATUS_LABEL, k) ? k : 'dudoso';
+  }
+
+  // Quita espacios repetidos y puntuación final duplicada («.;», «;», «.»).
+  function cleanItem(v) {
+    if (v && typeof v === 'object') v = v.text || v.item || v.descripcion || v.description || '';
+    return String(v || '').replace(/\s+/g, ' ').trim().replace(/[\s.;,:]+$/, '').trim();
+  }
+
   function renderAiResult(action, payload) {
     if (!payload || !payload.ok) {
       var AI_ERRORS = {
@@ -533,19 +613,27 @@
     var html = aiMetaBlock(res);
 
     if (action === 'eligibility') {
-      var light = String(res.traffic_light || 'amber');
+      var light = normalizeLight(res.traffic_light);
       html += '<h4>Semáforo de elegibilidad</h4>';
-      html += '<p><span class="ai-light ' + esc(light) + '">' + esc(light.toUpperCase()) + '</span> ' + esc(res.headline) + '</p>';
+      html += '<p><span class="ai-light big ' + esc(light) + '">' + esc(LIGHT_LABEL[light]) + '</span></p>';
+      if (res.headline) html += '<p>' + esc(res.headline) + '</p>';
       if (res.checks && res.checks.length) {
-        html += '<table><thead><tr><th>Requisito</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody>';
+        html += '<table class="ai-cards"><thead><tr><th>Requisito</th><th>Estado</th><th>Evidencia y acción</th></tr></thead><tbody>';
         res.checks.forEach(function (c) {
-          var st = String(c.status || 'dudoso');
-          html += '<tr><td>' + esc(c.requirement || c.item || c.requisito || '') + '</td><td><span class="ai-status-pill ' + esc(st) + '">' + esc(st) + '</span></td><td>' + esc(c.evidence || c.details || c.detalle || '') + (c.missing_action || c.accion ? ' · <b>Acción:</b> ' + esc(c.missing_action || c.accion) : '') + '</td></tr>';
+          var st = normalizeCheckStatus(c.status);
+          var action2 = cleanItem(c.missing_action || c.accion || '');
+          var evid = cleanItem(c.evidence || c.details || c.detalle || '');
+          html += '<tr><td data-label="Requisito"><strong>' + esc(c.requirement || c.item || c.requisito || '') + '</strong></td>' +
+            '<td class="ai-chip-cell" data-label="Estado"><span class="ai-status-pill ' + esc(st) + '">' + esc(STATUS_LABEL[st]) + '</span></td>' +
+            '<td data-label="Evidencia">' + (evid ? esc(evid) : '') +
+            (action2 ? (evid ? '<br>' : '') + '<b>Acción:</b> ' + esc(action2) : '') + '</td></tr>';
         });
         html += '</tbody></table>';
       }
-      if (res.missing_items && res.missing_items.length) {
-        html += '<div class="ai-missing-box"><strong>Falta revisar antes de presentar:</strong> ' + esc(res.missing_items.join('; ')) + '</div>';
+      var missing = (res.missing_items || []).map(cleanItem).filter(Boolean);
+      if (missing.length) {
+        html += '<div class="ai-missing-box"><strong>Falta revisar antes de presentar:</strong><ul>' +
+          missing.map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('') + '</ul></div>';
       }
       return html;
     }
@@ -578,12 +666,12 @@
       html += '<h4>Comprobación LER</h4><p><strong>Veredicto:</strong> ' + esc(verdictLabels[res.verdict] || res.verdict) + '</p>';
       function lerTable(title, rows, extraCol) {
         if (!rows || !rows.length) return '';
-        var t = '<h4 style="font-size:14px">' + esc(title) + '</h4><table><thead><tr><th>LER</th><th>Descripción</th><th>Operación</th>';
+        var t = '<h4 style="font-size:14px">' + esc(title) + '</h4><table class="ai-cards"><thead><tr><th>LER</th><th>Descripción</th><th>Operación</th>';
         if (extraCol) t += '<th>' + esc(extraCol) + '</th>';
         t += '</tr></thead><tbody>';
         rows.forEach(function (r) {
-          t += '<tr><td>' + esc(r.ler) + '</td><td>' + esc(r.description) + '</td><td>' + esc(r.operation) + '</td>';
-          if (extraCol) t += '<td>' + esc(r.reason || '') + '</td>';
+          t += '<tr><td data-label="LER"><strong>' + esc(r.ler) + '</strong></td><td data-label="Descripción">' + esc(r.description) + '</td><td data-label="Operación">' + esc(r.operation) + '</td>';
+          if (extraCol) t += '<td data-label="' + esc(extraCol) + '">' + esc(r.reason || '') + '</td>';
           t += '</tr>';
         });
         return t + '</tbody></table>';
@@ -599,9 +687,9 @@
     if (action === 'calendar') {
       html += '<h4>Calendario del expediente</h4>';
       if (!res.milestones || !res.milestones.length) return html + '<p>No se han extraído hitos.</p>';
-      html += '<table><thead><tr><th>Fecha</th><th>Hito</th><th>Notas</th></tr></thead><tbody>';
+      html += '<table class="ai-cards"><thead><tr><th>Fecha</th><th>Hito</th><th>Notas</th></tr></thead><tbody>';
       res.milestones.forEach(function (m) {
-        html += '<tr><td>' + esc(m.due_at) + '</td><td>' + esc(m.title) + '</td><td>' + esc(m.notes) + '</td></tr>';
+        html += '<tr><td data-label="Fecha"><strong>' + esc(m.due_at) + '</strong></td><td data-label="Hito">' + esc(m.title) + '</td><td data-label="Notas">' + esc(m.notes) + '</td></tr>';
       });
       html += '</tbody></table>';
       return html;
@@ -703,6 +791,48 @@
 
   document.querySelectorAll('button.ai-run').forEach(function (btn) {
     btn.addEventListener('click', function () { callAiAgent(btn.getAttribute('data-action')); });
+  });
+
+  // Guía «Cómo funciona»: abierta la primera vez; si la cierras, se recuerda en este navegador.
+  var HOWTO_STORE = 'av_howto_closed';
+  var howtoEl = document.getElementById('howtoBox');
+  if (howtoEl) {
+    var howtoClosed = false;
+    try { howtoClosed = localStorage.getItem(HOWTO_STORE) === '1'; } catch (e) {}
+    howtoEl.open = !howtoClosed;
+    howtoEl.addEventListener('toggle', function () {
+      try {
+        if (howtoEl.open) localStorage.removeItem(HOWTO_STORE);
+        else localStorage.setItem(HOWTO_STORE, '1');
+      } catch (e) {}
+    });
+  }
+
+  // Pliego de ejemplo ficticio y corto, solo para probar los agentes.
+  var EXAMPLE_TENDER = [
+    'EJEMPLO FICTICIO (solo para probar el panel). Ayuntamiento de Villaejemplo.',
+    'Objeto: servicio de recogida y transporte de residuos de envases y papel-cartón del municipio.',
+    'Solvencia económica: volumen anual de negocios en alguno de los tres últimos años de al menos 300.000 euros.',
+    'Solvencia técnica: al menos un contrato similar en los últimos tres años y certificado ISO 14001 en vigor.',
+    'Autorización como gestor/transportista de residuos para los códigos LER 15 01 01, 15 01 02 y 20 01 01.',
+    'Medios: la flota de vehículos deberá contar con distintivo ambiental ECO o CERO de la DGT.',
+    'Plazo de presentación de ofertas: 15 días naturales desde la publicación del anuncio. Las preguntas se podrán enviar hasta 5 días antes del fin del plazo.',
+    'Criterios de valoración: precio (60 puntos), memoria técnica del servicio (30 puntos) y mejoras ambientales (10 puntos).'
+  ].join('\n');
+
+  function fillExample(ev) {
+    if (ev) ev.preventDefault();
+    var textEl = document.getElementById('aiTenderText');
+    var box = document.getElementById('aiAgentsBox');
+    if (box) box.open = true;
+    aiItemKey = null;
+    textEl.value = EXAMPLE_TENDER;
+    setAiBox('<p>Hemos puesto un pliego de ejemplo (ficticio). Ahora pulsa <strong>Semáforo: ¿puedo presentarme?</strong> u otro agente.</p>');
+    textEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  ['howtoExampleBtn', 'aiExampleLink'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', fillExample);
   });
 
   // Buzón de ideas: solo se muestran mensajes fijos (textContent), nunca texto del servidor.
