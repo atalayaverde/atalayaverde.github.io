@@ -62,6 +62,9 @@
   .howto-steps > li{margin-bottom:10px}
   .howto-agents{margin:6px 0 0;padding-left:18px;font-size:13.5px}
   .howto-agents li{margin:3px 0}
+  .ai-limit-box{background:#fff7e6;border:1px solid #f0c36d;border-radius:10px;padding:12px 14px;line-height:1.5}
+  .ai-limit-box p{margin:0 0 8px}
+  .ai-trial-left{margin:8px 0 0;font-size:13.5px;color:#5d6862}
   @media (max-width:700px){
     .ai-out table.ai-cards,.ai-out table.ai-cards tbody,.ai-out table.ai-cards tr,.ai-out table.ai-cards td{display:block;width:auto}
     .ai-out table.ai-cards thead{display:none}
@@ -227,6 +230,7 @@
       <button class="btn-sm ai-run" data-action="competitor_intel" type="button">Competencia</button>
       <button class="btn-sm ai-run" data-action="environmental_ler" type="button">Detectar códigos LER</button>
     </div>
+    <p id="aiTrialLeft" class="ai-trial-left" hidden aria-live="polite"></p>
     <div id="aiResultBox" class="ai-out" hidden aria-live="polite"></div>
   </details>
 
@@ -314,6 +318,34 @@
     var show = any && (plan === 'trial' || plan === '');
     if (box) box.hidden = !show;
     if (upgradeEl) upgradeEl.hidden = !show;
+    var leftEl = document.getElementById('aiTrialLeft');
+    if (leftEl && (plan === 'trial' || plan === '') && !leftEl.textContent) {
+      leftEl.textContent = 'La prueba gratis incluye ' + TRIAL_AI_CAP + ' análisis con IA.';
+      leftEl.hidden = false;
+    }
+  }
+
+  // Tope de la prueba gratis: 10 análisis con IA en total (lo controla el servidor).
+  var TRIAL_AI_CAP = 10;
+  function updateTrialLeft(trial) {
+    var leftEl = document.getElementById('aiTrialLeft');
+    if (!leftEl || !trial || typeof trial !== 'object') return;
+    var cap = Math.max(0, parseInt(trial.cap, 10) || TRIAL_AI_CAP);
+    var left = Math.max(0, Math.min(cap, parseInt(trial.remaining, 10) || 0));
+    leftEl.textContent = left > 0
+      ? 'Te quedan ' + left + ' de ' + cap + ' análisis de prueba.'
+      : 'Has usado los ' + cap + ' análisis de la prueba gratis.';
+    leftEl.hidden = false;
+  }
+
+  function trialLimitHtml() {
+    var box = document.getElementById('planesPago');
+    var canPay = box && !box.hidden;
+    return '<div class="ai-limit-box"><p><strong>Has usado los ' + TRIAL_AI_CAP + ' análisis de la prueba gratis.</strong> Pasa a un plan de pago para seguir.</p>' +
+      (canPay
+        ? '<a class="btn-sm primary" href="#planesPago" id="aiGoPlans">Ver planes de pago ↑</a>'
+        : '<p style="margin:0">Escríbenos desde el buzón de ideas si quieres seguir probándolo.</p>') +
+      '</div>';
   }
 
   function headerLabel(sub) {
@@ -637,6 +669,7 @@
         daily_ai_limit_reached: 'Has llegado al límite diario de 15 análisis. Vuelve mañana.'
       };
       var code = payload && payload.error;
+      if (code === 'trial_ai_limit_reached') return trialLimitHtml();
       var err = (code && Object.prototype.hasOwnProperty.call(AI_ERRORS, code))
         ? AI_ERRORS[code]
         : 'No se pudo completar el análisis. Inténtalo de nuevo en unos minutos.';
@@ -798,7 +831,10 @@
         body: JSON.stringify({ action: action, tender_text: text, item_key: aiItemKey, company_profile: readCapProfile() })
       })
         .then(function (r) { return r.json(); })
-        .then(function (data) { setAiBox(renderAiResult(action, data)); })
+        .then(function (data) {
+          if (data && data.trial) updateTrialLeft(data.trial);
+          setAiBox(renderAiResult(action, data));
+        })
         .catch(function (e) { setAiBox('<p>Error llamando al agente IA: ' + esc(e.message) + '</p>'); })
         .finally(function () { runBtns.forEach(function (b) { b.disabled = false; }); });
     }).catch(function (e) {
@@ -808,6 +844,15 @@
   }
 
   document.getElementById('aiResultBox').addEventListener('click', function (ev) {
+    if (ev.target && ev.target.id === 'aiGoPlans') {
+      var plans = document.getElementById('planesPago');
+      if (plans && !plans.hidden) {
+        ev.preventDefault();
+        plans.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        plans.style.outline = '3px solid #f0c36d';
+        setTimeout(function () { plans.style.outline = ''; }, 2500);
+      }
+    }
     if (ev.target && ev.target.id === 'copyDraftBtn' && lastDraftMarkdown) {
       navigator.clipboard.writeText(lastDraftMarkdown).then(function () {
         ev.target.textContent = 'Copiado ✓';
