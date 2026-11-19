@@ -247,6 +247,7 @@
           '</select>' +
           '<input class="note-input" type="text" placeholder="Nota interna..." value="' + esc(m.internal_note || '') + '" data-note-for="' + esc(m.item_key) + '">' +
           '<button class="btn-sm" data-save-note="' + esc(m.item_key) + '" type="button">Guardar nota</button>' +
+          '<button class="btn-sm" data-ai-key="' + esc(m.item_key) + '" type="button">Analizar con IA</button>' +
         '</div></article>';
     }).join('');
   }
@@ -401,6 +402,31 @@
 
   var aiTokenEl = document.getElementById('aiTokenInput');
   if (urlAiToken && aiTokenEl) aiTokenEl.value = urlAiToken;
+  var aiItemKey = null;
+  var MIN_TENDER_CHARS = 80;
+
+  // Carga el texto del pliego guardado por el motor (sesión del panel t=, no el token de baja).
+  listEl.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-ai-key]');
+    if (!btn) return;
+    aiItemKey = btn.getAttribute('data-ai-key');
+    var textEl = document.getElementById('aiTenderText');
+    var outEl = document.getElementById('aiResultBox');
+    outEl.hidden = false;
+    outEl.textContent = 'Buscando el texto del pliego...';
+    textEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    rpc('portal_get_tender_text', { p_token: token, p_item_key: aiItemKey })
+      .then(function (data) {
+        if (data && data.ok && data.excerpt) {
+          textEl.value = data.excerpt;
+          outEl.textContent = 'Texto del pliego cargado. Pulsa un agente para analizarlo.';
+        } else {
+          textEl.value = '';
+          outEl.textContent = 'No hay texto extraíble; pega el PCAP manualmente.';
+        }
+      })
+      .catch(function () { outEl.textContent = 'No hay texto extraíble; pega el PCAP manualmente.'; });
+  });
 
   function readCapProfile() {
     var splitCsv = function (v) { return v.split(',').map(function (s) { return s.trim(); }).filter(Boolean); };
@@ -425,12 +451,12 @@
     var text = document.getElementById('aiTenderText').value.trim();
     outEl.hidden = false;
     if (!aiToken) { outEl.textContent = 'Introduce tu token IA (x-ai-token) para ejecutar el agente.'; return; }
-    if (text.length < 20) { outEl.textContent = 'Pega al menos 20 caracteres del pliego.'; return; }
+    if (text.length < MIN_TENDER_CHARS) { outEl.textContent = 'Pega al menos ' + MIN_TENDER_CHARS + ' caracteres del pliego.'; return; }
     outEl.textContent = 'Analizando con Gemini...';
     fetch(cfg.SUPABASE_URL + '/functions/v1/ai-agents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-ai-token': aiToken },
-      body: JSON.stringify({ action: action, tender_text: text, company_profile: readCapProfile() })
+      body: JSON.stringify({ action: action, tender_text: text, item_key: aiItemKey, company_profile: readCapProfile() })
     })
       .then(function (r) { return r.json(); })
       .then(function (data) { outEl.textContent = JSON.stringify(data, null, 2); })
