@@ -136,10 +136,14 @@
     <p class="note" style="margin:10px 0">
       ⚠️ <strong>Aviso IA:</strong> Resultado generado por IA (Gemini). Orientativo, no es asesoramiento legal; verifica el pliego. No pegues datos personales innecesarios del expediente.
     </p>
-    <div class="settings-grid">
-      <label>Token IA (incluido en tu correo o facilitado al activar IA)
-        <input id="aiTokenInput" type="password" placeholder="Pega tu token IA (x-ai-token)">
+    <details id="aiTokenAdvanced" style="margin:0 0 10px">
+      <summary>Avanzado: token IA manual</summary>
+      <p class="note" style="margin:8px 0">El token se genera solo al entrar al panel. Solo hace falta este campo si te lo han dado aparte.</p>
+      <label>Token IA
+        <input id="aiTokenInput" type="password" placeholder="Se rellena solo al entrar al panel" autocomplete="off">
       </label>
+    </details>
+    <div class="settings-grid">
       <label>Facturación anual (€)
         <input id="capTurnover" type="number" min="0" value="0">
       </label>
@@ -433,7 +437,39 @@
   });
 
   var aiTokenEl = document.getElementById('aiTokenInput');
-  if (urlAiToken && aiTokenEl) aiTokenEl.value = urlAiToken;
+  var AI_TOKEN_STORE = 'av_ai_token';
+  var aiTokenReady = Promise.resolve();
+
+  function readStoredAiToken() {
+    try { return sessionStorage.getItem(AI_TOKEN_STORE) || ''; } catch (e) { return ''; }
+  }
+
+  function writeStoredAiToken(value) {
+    if (aiTokenEl) aiTokenEl.value = value || '';
+    try {
+      if (value) sessionStorage.setItem(AI_TOKEN_STORE, value);
+      else sessionStorage.removeItem(AI_TOKEN_STORE);
+    } catch (e) {}
+  }
+
+  function issueAiTokenFromSession() {
+    if (!token) return Promise.resolve('');
+    return rpc('portal_issue_ai_token', { p_session: token }).then(function (data) {
+      if (data && data.ok && data.ai_token) {
+        writeStoredAiToken(data.ai_token);
+        return data.ai_token;
+      }
+      return '';
+    }).catch(function () { return ''; });
+  }
+
+  if (urlAiToken) {
+    writeStoredAiToken(urlAiToken);
+  } else if (readStoredAiToken()) {
+    writeStoredAiToken(readStoredAiToken());
+  } else if (token) {
+    aiTokenReady = issueAiTokenFromSession();
+  }
   var aiItemKey = null;
   var MIN_TENDER_CHARS = 80;
 
@@ -622,22 +658,32 @@
   function callAiAgent(action) {
     var outEl = document.getElementById('aiResultBox');
     var runBtns = document.querySelectorAll('button.ai-run');
-    var aiToken = (aiTokenEl && aiTokenEl.value || '').trim();
     var text = document.getElementById('aiTenderText').value.trim();
     outEl.hidden = false;
-    if (!aiToken) { setAiBox('<p>Introduce tu token IA (x-ai-token) para ejecutar el agente.</p>'); return; }
     if (text.length < MIN_TENDER_CHARS) { setAiBox('<p>Pega al menos ' + esc(String(MIN_TENDER_CHARS)) + ' caracteres del pliego.</p>'); return; }
     runBtns.forEach(function (b) { b.disabled = true; });
-    setAiBox('<p><strong>Analizando pliego con Gemini...</strong> esto suele tardar unos segundos.</p>');
-    fetch(cfg.SUPABASE_URL + '/functions/v1/ai-agents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-ai-token': aiToken },
-      body: JSON.stringify({ action: action, tender_text: text, item_key: aiItemKey, company_profile: readCapProfile() })
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (data) { setAiBox(renderAiResult(action, data)); })
-      .catch(function (e) { setAiBox('<p>Error llamando al agente IA: ' + esc(e.message) + '</p>'); })
-      .finally(function () { runBtns.forEach(function (b) { b.disabled = false; }); });
+    setAiBox('<p>Preparando el análisis...</p>');
+    aiTokenReady.then(function () {
+      var aiToken = (aiTokenEl && aiTokenEl.value || '').trim();
+      if (!aiToken) {
+        setAiBox('<p>Estamos preparando tu acceso de IA. Espera un segundo y pulsa de nuevo; si no se rellena, ábrelo en Avanzado.</p>');
+        runBtns.forEach(function (b) { b.disabled = false; });
+        return;
+      }
+      setAiBox('<p><strong>Analizando pliego con Gemini...</strong> esto suele tardar unos segundos.</p>');
+      return fetch(cfg.SUPABASE_URL + '/functions/v1/ai-agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-ai-token': aiToken },
+        body: JSON.stringify({ action: action, tender_text: text, item_key: aiItemKey, company_profile: readCapProfile() })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { setAiBox(renderAiResult(action, data)); })
+        .catch(function (e) { setAiBox('<p>Error llamando al agente IA: ' + esc(e.message) + '</p>'); })
+        .finally(function () { runBtns.forEach(function (b) { b.disabled = false; }); });
+    }).catch(function (e) {
+      setAiBox('<p>Error llamando al agente IA: ' + esc(e.message) + '</p>');
+      runBtns.forEach(function (b) { b.disabled = false; });
+    });
   }
 
   document.getElementById('aiResultBox').addEventListener('click', function (ev) {
