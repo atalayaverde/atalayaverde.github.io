@@ -114,6 +114,38 @@
 
   <p id="statusMsg" class="note"></p>
   <div id="oppList" class="opp-grid"></div>
+
+  <details class="settings-box" style="margin-top:24px" open>
+    <summary>Agentes IA · Semáforo de elegibilidad y borrador de memoria técnica</summary>
+    <p class="note" style="margin:10px 0">
+      ⚠️ <strong>Aviso IA:</strong> Los análisis y borradores se generan con IA (Google Gemini). Nunca garantizan el cumplimiento legal ni sustituyen la revisión de los pliegos oficiales (PCAP/PPT).
+    </p>
+    <div class="settings-grid">
+      <label>Token IA (incluido en tu correo o facilitado al activar IA)
+        <input id="aiTokenInput" type="password" placeholder="Pega tu token IA (x-ai-token)">
+      </label>
+      <label>Facturación anual (€)
+        <input id="capTurnover" type="number" min="0" value="0">
+      </label>
+      <label>Clasificaciones / Certificados (separados por coma)
+        <input id="capCerts" type="text" placeholder="O-1-4, ISO 14001, EMAS">
+      </label>
+      <label>Códigos LER autorizados (separados por coma)
+        <input id="capLer" type="text" placeholder="20 01 01, 17 09 04">
+      </label>
+    </div>
+    <div style="margin-top:10px">
+      <button class="btn-sm" id="saveCapBtn" type="button">Guardar perfil de solvencia/LER</button>
+      <span id="capMsg" class="note" style="margin-left:8px"></span>
+    </div>
+    <textarea id="aiTenderText" rows="5" placeholder="Pega aquí el texto relevante del PCAP/PPT (solvencia, clasificación, códigos LER y criterios de valoración)..." style="width:100%;margin-top:12px;padding:9px;border:1px solid #d5cfbe;border-radius:8px;box-sizing:border-box"></textarea>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+      <button class="btn-sm primary" id="runEligibilityBtn" type="button">1. Semáforo: ¿Puedo presentarme?</button>
+      <button class="btn-sm primary" id="runDraftBtn" type="button">2. Borrador memoria técnica</button>
+    </div>
+    <pre id="aiResultBox" style="margin-top:12px;padding:12px;background:#f7f5ee;border-radius:8px;white-space:pre-wrap;font-size:12.5px" hidden></pre>
+  </details>
+
   <p class="note" style="margin-top:28px">Servicio informativo automatizado no oficial. Verifica siempre las bases y pliegos en la fuente oficial antes de presentar oferta.</p>
 </main>
 
@@ -251,7 +283,8 @@
         var upgradeEl = document.getElementById('upgradeBtn');
         var proLink = (cfg.STRIPE_LINKS && cfg.STRIPE_LINKS.pro) || '';
         if (upgradeEl && proLink && data.subscriber.plan === 'trial') {
-          upgradeEl.href = proLink;
+          var sep = proLink.indexOf('?') >= 0 ? '&' : '?';
+          upgradeEl.href = proLink + sep + 'client_reference_id=' + encodeURIComponent(data.subscriber.id || '');
           upgradeEl.hidden = false;
         }
         allMatches = data.matches || [];
@@ -344,6 +377,48 @@
       p_note: note
     }).then(function () { btn.textContent = 'Nota guardada ✓'; });
   });
+
+  var aiTokenEl = document.getElementById('aiTokenInput');
+  var urlAiToken = new URLSearchParams(location.search).get('ai_token') || '';
+  if (urlAiToken && aiTokenEl) aiTokenEl.value = urlAiToken;
+
+  function readCapProfile() {
+    var splitCsv = function (v) { return v.split(',').map(function (s) { return s.trim(); }).filter(Boolean); };
+    return {
+      annual_turnover_eur: Number(document.getElementById('capTurnover').value) || 0,
+      certifications: splitCsv(document.getElementById('capCerts').value),
+      ler_codes: splitCsv(document.getElementById('capLer').value)
+    };
+  }
+
+  document.getElementById('saveCapBtn').addEventListener('click', function () {
+    var capMsg = document.getElementById('capMsg');
+    capMsg.textContent = 'Guardando...';
+    rpc('portal_upsert_capabilities', { p_token: token, p_payload: readCapProfile() })
+      .then(function (r) { capMsg.textContent = r && r.ok ? 'Perfil guardado.' : 'Error guardando perfil.'; })
+      .catch(function (e) { capMsg.textContent = e.message; });
+  });
+
+  function callAiAgent(action) {
+    var outEl = document.getElementById('aiResultBox');
+    var aiToken = (aiTokenEl && aiTokenEl.value || '').trim();
+    var text = document.getElementById('aiTenderText').value.trim();
+    outEl.hidden = false;
+    if (!aiToken) { outEl.textContent = 'Introduce tu token IA (x-ai-token) para ejecutar el agente.'; return; }
+    if (text.length < 20) { outEl.textContent = 'Pega al menos 20 caracteres del pliego.'; return; }
+    outEl.textContent = 'Analizando con Gemini...';
+    fetch(cfg.SUPABASE_URL + '/functions/v1/ai-agents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-ai-token': aiToken },
+      body: JSON.stringify({ action: action, tender_text: text, company_profile: readCapProfile() })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) { outEl.textContent = JSON.stringify(data, null, 2); })
+      .catch(function (e) { outEl.textContent = 'Error llamando al agente IA: ' + e.message; });
+  }
+
+  document.getElementById('runEligibilityBtn').addEventListener('click', function () { callAiAgent('eligibility'); });
+  document.getElementById('runDraftBtn').addEventListener('click', function () { callAiAgent('technical_draft'); });
 
   loadMatches();
 })();
