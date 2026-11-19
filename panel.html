@@ -159,6 +159,16 @@
     <div id="aiResultBox" class="ai-out" hidden aria-live="polite"></div>
   </details>
 
+  <details class="settings-box" style="margin-top:24px" id="feedbackBox">
+    <summary>💡 Danos tu idea para mejorar Atalaya</summary>
+    <p class="note" style="margin:10px 0">¿Qué echas en falta o qué cambiarías? Cuéntanoslo en pocas líneas. No incluyas datos personales ni de clientes.</p>
+    <textarea id="feedbackText" rows="4" maxlength="2000" placeholder="Ej.: me gustaría filtrar por provincia, recibir el aviso por WhatsApp..." style="width:100%;padding:9px;border:1px solid #d5cfbe;border-radius:8px;box-sizing:border-box"></textarea>
+    <div style="margin-top:10px">
+      <button class="btn-sm primary" id="feedbackSendBtn" type="button">Enviar idea</button>
+      <span id="feedbackMsg" class="note" style="margin-left:8px" aria-live="polite"></span>
+    </div>
+  </details>
+
   <p class="note" style="margin-top:28px">Servicio informativo automatizado no oficial. Verifica siempre las bases y pliegos en la fuente oficial antes de presentar oferta.</p>
   <p class="note"><a href="index.html">Inicio</a> · <a href="privacidad.html">Política de privacidad</a> · <a href="aviso-legal.html">Aviso legal</a> · <a href="cookies.html">Cookies</a> · <a href="condiciones.html">Condiciones de contratación</a></p>
 </main>
@@ -598,6 +608,48 @@
   document.querySelectorAll('button.ai-run').forEach(function (btn) {
     btn.addEventListener('click', function () { callAiAgent(btn.getAttribute('data-action')); });
   });
+
+  // Buzón de ideas: solo se muestran mensajes fijos (textContent), nunca texto del servidor.
+  var FEEDBACK_ERRORS = {
+    feedback_message_length: 'Escribe entre 5 y 2000 caracteres.',
+    feedback_daily_limit: 'Has enviado ya 5 ideas hoy. ¡Gracias! Prueba mañana.',
+    invalid_or_expired_session: 'Tu acceso al panel ha caducado. Abre de nuevo el enlace de tu correo.',
+    'Missing token': 'Abre el panel desde el enlace de tu correo para poder enviar ideas.'
+  };
+  var feedbackBtn = document.getElementById('feedbackSendBtn');
+  var feedbackTextEl = document.getElementById('feedbackText');
+  var feedbackMsgEl = document.getElementById('feedbackMsg');
+  if (feedbackBtn && feedbackTextEl && feedbackMsgEl) {
+    feedbackBtn.addEventListener('click', function () {
+      var msg = feedbackTextEl.value.trim();
+      var fbAiToken = (aiTokenEl && aiTokenEl.value || '').trim();
+      if (msg.length < 5) { feedbackMsgEl.textContent = FEEDBACK_ERRORS.feedback_message_length; return; }
+      if (!fbAiToken && !token) { feedbackMsgEl.textContent = FEEDBACK_ERRORS['Missing token']; return; }
+      var headers = { 'Content-Type': 'application/json' };
+      if (fbAiToken) headers['x-ai-token'] = fbAiToken;
+      feedbackBtn.disabled = true;
+      feedbackMsgEl.textContent = 'Enviando...';
+      fetch(cfg.SUPABASE_URL + '/functions/v1/ai-agents', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ action: 'feedback', message: msg, panel_token: token, page: 'panel' })
+      })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (data) {
+          if (data && data.ok) {
+            feedbackMsgEl.textContent = 'Gracias, lo leemos todo';
+            feedbackTextEl.value = '';
+          } else {
+            var key = data && data.error;
+            feedbackMsgEl.textContent = (key && Object.prototype.hasOwnProperty.call(FEEDBACK_ERRORS, key))
+              ? FEEDBACK_ERRORS[key]
+              : 'No se ha podido enviar. Inténtalo de nuevo en unos minutos.';
+          }
+        })
+        .catch(function () { feedbackMsgEl.textContent = 'No se ha podido enviar. Revisa tu conexión e inténtalo de nuevo.'; })
+        .then(function () { feedbackBtn.disabled = false; });
+    });
+  }
 
   loadMatches();
 })();
