@@ -18,8 +18,12 @@
 </header>
 <main class="wrap" style="padding:48px 20px">
   <article class="page" style="max-width:560px;margin:0 auto">
-    <h1>Confirmación de equipo</h1>
-    <p id="statusText" class="sub">Verificando tu invitación...</p>
+    <h1>Invitación de equipo</h1>
+    <p id="statusText" class="sub">Pulsa un botón para confirmar o rechazar tu suscripción a las alertas de este equipo.</p>
+    <div id="actionRow" style="display:flex;gap:12px;flex-wrap:wrap;margin:18px 0">
+      <button id="confirmBtn" class="btn-p" type="button">Confirmar invitación</button>
+      <button id="rejectBtn" class="btn-s" type="button">Rechazar invitación</button>
+    </div>
     <p><a class="btn-s" href="index.html">Volver al inicio</a></p>
   </article>
 </main>
@@ -29,35 +33,75 @@
   var cfg = window.AV_CONFIG || {};
   var params = new URLSearchParams(location.search);
   var token = params.get('t') || '';
-  var action = params.get('action') || 'confirm';
+  var action = params.get('action') || '';
   var statusEl = document.getElementById('statusText');
+  var rowEl = document.getElementById('actionRow');
+  var confirmBtn = document.getElementById('confirmBtn');
+  var rejectBtn = document.getElementById('rejectBtn');
+
+  if (token && window.history && window.history.replaceState) {
+    window.history.replaceState(null, '', location.pathname);
+  }
   if (!token) {
-    statusEl.textContent = 'Enlace incompleto: falta el token de confirmación.';
+    statusEl.textContent = 'Enlace incompleto: falta el token de invitación.';
+    rowEl.hidden = true;
     return;
   }
-  var rpcName = action === 'reject' ? 'portal_reject_team_member' : 'portal_confirm_team_member';
-  fetch(cfg.SUPABASE_URL + '/rest/v1/rpc/' + rpcName, {
-    method: 'POST',
-    headers: {
-      'apikey': cfg.SUPABASE_KEY,
-      'Authorization': 'Bearer ' + cfg.SUPABASE_KEY,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ p_confirm_token: token })
-  })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      if (d && d.ok && action === 'reject') {
-        statusEl.textContent = 'Invitación rechazada. No recibirás correos de este equipo.';
-      } else if (d && d.ok) {
-        statusEl.textContent = '¡Listo! Correo confirmado (' + (d.email || '') + '). Ya recibirás las alertas del equipo.';
-      } else {
-        statusEl.textContent = 'Este enlace ha caducado o ya fue utilizado.';
-      }
+  if (action === 'leave') {
+    confirmBtn.hidden = true;
+    rejectBtn.textContent = 'Darme de baja del equipo';
+  }
+
+  function callTeamRpc(rpcName, argName, onOkMsg) {
+    confirmBtn.disabled = true;
+    rejectBtn.disabled = true;
+    statusEl.textContent = 'Procesando...';
+    var body = {};
+    body[argName] = token;
+    fetch(cfg.SUPABASE_URL + '/rest/v1/rpc/' + rpcName, {
+      method: 'POST',
+      headers: {
+        'apikey': cfg.SUPABASE_KEY,
+        'Authorization': 'Bearer ' + cfg.SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
     })
-    .catch(function () {
-      statusEl.textContent = 'Error de conexión al confirmar la invitación.';
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.ok) {
+          rowEl.hidden = true;
+          statusEl.textContent = onOkMsg(d);
+        } else {
+          confirmBtn.disabled = false;
+          rejectBtn.disabled = false;
+          statusEl.textContent = 'Este enlace ha caducado o ya fue utilizado.';
+        }
+      })
+      .catch(function () {
+        confirmBtn.disabled = false;
+        rejectBtn.disabled = false;
+        statusEl.textContent = 'Error de conexión. Inténtalo de nuevo.';
+      });
+  }
+
+  confirmBtn.addEventListener('click', function () {
+    callTeamRpc('portal_confirm_team_member', 'p_confirm_token', function (d) {
+      return '¡Listo! Correo confirmado (' + (d.email || '') + '). Ya recibirás las alertas del equipo.';
     });
+  });
+
+  rejectBtn.addEventListener('click', function () {
+    if (action === 'leave') {
+      callTeamRpc('portal_unsubscribe_team_member', 'p_unsub_token', function () {
+        return 'Baja completada. Ya no recibirás más alertas de este equipo.';
+      });
+    } else {
+      callTeamRpc('portal_reject_team_member', 'p_confirm_token', function () {
+        return 'Invitación rechazada. No recibirás correos de este equipo.';
+      });
+    }
+  });
 })();
 </script>
 </body>
