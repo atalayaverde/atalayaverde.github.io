@@ -27,13 +27,16 @@
 <script>
 (function () {
   var cfg = window.AV_CONFIG || {};
-  var token = new URLSearchParams(location.search).get('t') || '';
+  var params = new URLSearchParams(location.search);
+  var token = params.get('t') || '';
+  var action = params.get('action') || 'confirm';
   var statusEl = document.getElementById('statusText');
   if (!token) {
     statusEl.textContent = 'Enlace incompleto: falta el token de confirmación.';
     return;
   }
-  fetch(cfg.SUPABASE_URL + '/rest/v1/rpc/portal_confirm_team_member', {
+  var rpcName = action === 'reject' ? 'portal_reject_team_member' : 'portal_confirm_team_member';
+  fetch(cfg.SUPABASE_URL + '/rest/v1/rpc/' + rpcName, {
     method: 'POST',
     headers: {
       'apikey': cfg.SUPABASE_KEY,
@@ -44,10 +47,12 @@
   })
     .then(function (r) { return r.json(); })
     .then(function (d) {
-      if (d && d.ok) {
+      if (d && d.ok && action === 'reject') {
+        statusEl.textContent = 'Invitación rechazada. No recibirás correos de este equipo.';
+      } else if (d && d.ok) {
         statusEl.textContent = '¡Listo! Correo confirmado (' + (d.email || '') + '). Ya recibirás las alertas del equipo.';
       } else {
-        statusEl.textContent = 'El enlace de confirmación no es válido o ya fue utilizado.';
+        statusEl.textContent = 'Este enlace ha caducado o ya fue utilizado.';
       }
     })
     .catch(function () {

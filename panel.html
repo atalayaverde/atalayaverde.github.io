@@ -153,7 +153,12 @@
 <script>
 (function () {
   var cfg = window.AV_CONFIG || {};
-  var token = new URLSearchParams(location.search).get('t') || '';
+  var params = new URLSearchParams(location.search);
+  var token = params.get('t') || '';
+  var urlAiToken = params.get('ai_token') || '';
+  if ((token || urlAiToken) && window.history && window.history.replaceState) {
+    window.history.replaceState(null, '', location.pathname);
+  }
   var listEl = document.getElementById('oppList');
   var statusEl = document.getElementById('statusMsg');
   var badgeEl = document.getElementById('companyBadge');
@@ -269,8 +274,8 @@
     rpc('portal_list_matches', { p_token: token, p_status: activeFilter || null })
       .then(function (data) {
         if (!data || !data.ok) {
-          badgeEl.textContent = 'Token no válido';
-          statusEl.textContent = 'El enlace no es válido o la suscripción no está activa.';
+          badgeEl.textContent = 'Enlace caducado';
+          statusEl.textContent = 'Este enlace ha caducado, usa el del último correo.';
           allMatches = [];
           renderList();
           return;
@@ -385,7 +390,6 @@
   });
 
   var aiTokenEl = document.getElementById('aiTokenInput');
-  var urlAiToken = new URLSearchParams(location.search).get('ai_token') || '';
   if (urlAiToken && aiTokenEl) aiTokenEl.value = urlAiToken;
 
   function readCapProfile() {
