@@ -24,7 +24,8 @@
 <h2>3. Para qué y con qué base legal</h2>
 <table class="t">
 <tr><th>Enviarte el resumen de licitaciones y ayudas que has pedido y gestionar tu suscripción</th><td>Tu consentimiento explícito (art. 6.1.a RGPD y art. 21 de la Ley 34/2002, LSSI). Lo das marcando la casilla del formulario y confirmando tu correo (doble confirmación). Puedes retirarlo en cualquier momento.</td></tr>
-<tr><th>Gestionar la prueba gratuita y, en su caso, el plan de pago</th><td>Ejecución de la relación que solicitas (art. 6.1.b RGPD). <i>Hoy no hay cobros: cuando existan, se informará del proveedor de pagos.</i></td></tr>
+<tr><th>Gestionar la prueba gratuita y, en su caso, el plan de pago</th><td>Ejecución de la relación que solicitas (art. 6.1.b RGPD) a través de Stripe cuando los pagos estén activos.</td></tr>
+<tr><th>Generar análisis orientativos de pliegos y borradores técnicos con IA</th><td>Ejecución del servicio solicitado (art. 6.1.b RGPD). El análisis orientativo se realiza mediante la API de pago de Google Gemini; el usuario debe revisar siempre los resultados en los pliegos oficiales.</td></tr>
 <tr><th>Conservar un registro mínimo tras la baja</th><td>Defensa frente a posibles reclamaciones y acreditación del consentimiento y de la baja (art. 6.1.f y art. 17.3.e RGPD; bloqueo conforme al art. 32 LOPDGDD).</td></tr>
 </table>
 <p>No elaboramos perfiles con decisiones automatizadas que te afecten legalmente. La “nota de encaje” solo ordena las convocatorias públicas según los sectores y zonas que tú eliges.</p>
@@ -39,10 +40,11 @@
 <h2>5. Quién más accede a tus datos</h2>
 <p>No vendemos ni cedemos tus datos. Para prestar el servicio usamos proveedores que actúan como <b>encargados del tratamiento</b> con contrato conforme al art. 28 RGPD:</p>
 <ul>
-<li><b>Supabase</b> (base de datos), con la base de datos alojada en la UE (Irlanda).</li>
-<li><b>Proveedor de envío de correo</b>: Brevo (Sendinblue).</li>
-<li><b>Alojamiento de la web</b>: GitHub Pages.</li>
-<li><b>Pagos</b> (cuando se activen): Stripe; se informará antes de activar cualquier pago.</li>
+<li><b>Supabase</b> (base de datos y funciones de servidor), con la base de datos alojada en la UE (Irlanda).</li>
+<li><b>Brevo (Sendinblue)</b>: proveedor de envío de correo transaccional y resúmenes de alertas.</li>
+<li><b>GitHub Pages</b>: alojamiento de la web estática.</li>
+<li><b>Stripe</b>: pasarela de pagos para los planes de suscripción cuando estén activos.</li>
+<li><b>Google Gemini (Google AI Studio, API de pago)</b>: procesamiento de textos de pliegos y datos de perfil introducidos por el usuario para generar semáforos orientativos y borradores técnicos, sin uso de los envíos para entrenar modelos públicos.</li>
 </ul>
 <p>Algunos de estos proveedores pueden tratar datos fuera del Espacio Económico Europeo; en ese caso se apoyan en las garantías del RGPD (cláusulas contractuales tipo o decisión de adecuación). Los datos públicos de las convocatorias los obtenemos de fuentes oficiales y no incluyen datos personales de los suscriptores.</p>
 

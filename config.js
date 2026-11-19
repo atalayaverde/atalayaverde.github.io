@@ -7,9 +7,9 @@ window.AV_CONFIG = {
   // false = prototipo: la solicitud se guarda pero todavía NO se envían correos (se avisa al usuario).
   // Poner true cuando el envío esté activo (ver docs/PLAN-ENVIO.md).
   EMAIL_LIVE: true,
-  // Integración de pagos (Stripe Payment Links).
+  // Enlaces de pago Stripe desactivados temporalmente (pendiente pasar a modo prueba + webhook en Supabase).
   STRIPE_LINKS: {
-    pro: 'https://buy.stripe.com/4gM9AU7sX0PEfyd0RUdby00',
-    equipo: 'https://buy.stripe.com/aFa3cw5kPaqefydasudby01',
+    pro: '',
+    equipo: '',
   },
 };
