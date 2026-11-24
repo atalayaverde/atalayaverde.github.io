@@ -390,17 +390,18 @@
     listEl.innerHTML = items.map(function (m) {
       var dl = m.deadline ? new Date(m.deadline).toLocaleDateString('es-ES') : 'No indicado';
       var sum = m.summary_json || {};
+      var safeHref = /^https?:\/\//i.test(String(m.url || '').trim()) ? esc(String(m.url).trim()) : '';
       var summaryHtml = sum.alerta_clave
         ? '<div class="opp-summary"><strong>Resumen rápido:</strong> ' + esc(sum.alerta_clave) + ' · ' + esc(sum.tipo_contrato || m.category_label) + '</div>'
         : '';
       return '<article class="opp-card ' + esc(m.user_status || 'new') + '">' +
         '<div class="opp-top"><span>' + esc(KIND_LABEL[m.kind] || m.kind) + ' · ' + esc(m.category_label) + '</span>' +
         '<span class="opp-badge">Encaje ' + Math.round(m.score) + '</span></div>' +
-        '<h3 style="margin:4px 0 6px"><a href="' + esc(m.url) + '" target="_blank" rel="noreferrer">' + esc(m.title) + '</a></h3>' +
+        '<h3 style="margin:4px 0 6px">' + (safeHref ? '<a href="' + safeHref + '" target="_blank" rel="noopener noreferrer">' + esc(m.title) + '</a>' : esc(m.title)) + '</h3>' +
         '<div style="font-size:13.5px;color:#5d6862">' + esc(m.org) + (m.place ? ' · ' + esc(m.place) : '') + ' · ' + esc(fmtMoney(m.budget, m.currency)) + ' · Cierre: ' + esc(dl) + '</div>' +
         summaryHtml +
         '<div class="opp-actions">' +
-          '<a class="btn-sm primary" href="' + esc(m.url) + '" target="_blank" rel="noreferrer">Ver ficha oficial →</a>' +
+          (safeHref ? '<a class="btn-sm primary" href="' + safeHref + '" target="_blank" rel="noopener noreferrer">Ver ficha oficial →</a>' : '') +
           '<select class="btn-sm crm-select" data-key="' + esc(m.item_key) + '" aria-label="Estado">' +
             '<option value="new"' + (m.user_status === 'new' ? ' selected' : '') + '>Nueva</option>' +
             '<option value="saved"' + (m.user_status === 'saved' ? ' selected' : '') + '>★ Guardada</option>' +
