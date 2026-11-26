@@ -1,5 +1,6 @@
 // Configuración pública del navegador. La clave "publishable" de Supabase es pública por diseño:
-// solo permite INSERT en `subscribers` (RLS + permisos por columna) y ejecutar confirm_subscription / unsubscribe.
+// no da acceso directo a ninguna tabla: solo ejecuta RPC públicas (subscribe, confirm_subscription, unsubscribe,
+// request_subscription, confirm_subscription_request, portal_*) que validan cada llamada en la base de datos.
 window.AV_CONFIG = {
   SUPABASE_URL: 'https://kjbzzvewizfabigpwxvd.supabase.co',
   SUPABASE_KEY: 'sb_publishable_BfMVG_x7VFB002bki6tZSw_z1xj9lfJ',
@@ -7,12 +8,9 @@ window.AV_CONFIG = {
   // false = prototipo: la solicitud se guarda pero todavía NO se envían correos (se avisa al usuario).
   // Poner true cuando el envío esté activo (ver docs/PLAN-ENVIO.md).
   EMAIL_LIVE: true,
-  // Enlaces de pago Stripe (modo real, activados el 19/11/2026 con el vale de Rubén).
-  // Cada enlace lleva metadata.plan (pro|equipo); el webhook asigna el plan por client_reference_id o por email.
-  STRIPE_LINKS: {
-    pro: 'https://buy.stripe.com/6oU6oIeVp9ma0Dj9oqdby02',          // Profesional 19 €/mes
-    pro_anual: 'https://buy.stripe.com/4gM8wQeVpdCqdq558adby03',    // Profesional 190 €/año
-    equipo: 'https://buy.stripe.com/3cI7sM6oT55U99P7gidby04',       // Equipo 39 €/mes
-    equipo_anual: 'https://buy.stripe.com/bJe3cwfZtdCq71H446dby05', // Equipo 390 €/año
-  },
+  // Cobro aún no activo: no mostrar botones de pago ni publicar enlaces buy.stripe.com.
+  // Cuando Rubén active el cobro, poner true y rellenar STRIPE_LINKS (los Payment Links
+  // ya tienen metadata.plan pro|equipo). Hasta entonces el CTA es el alta de prueba gratis.
+  PAYMENTS_ENABLED: false,
+  STRIPE_LINKS: {},
 };

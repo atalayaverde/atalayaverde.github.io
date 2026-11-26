@@ -32,12 +32,14 @@
 
   // plan elegido en la sección de precios (solo informativo durante la prueba; punto de integración con Stripe más abajo)
   document.querySelectorAll('[data-plan]').forEach((a) => a.addEventListener('click', () => { sessionStorage.setItem('av_plan', a.dataset.plan); }));
-  // Botones de pago Stripe: solo se muestran si el enlace del plan está en config.js.
-  const LINKS = CFG.STRIPE_LINKS || {};
+  // Botones de pago Stripe: solo si PAYMENTS_ENABLED y el enlace del plan es un Payment Link.
+  // Hasta que el cobro esté activo no se publican ni se asignan URLs de pago.
+  const PAY_ON = CFG.PAYMENTS_ENABLED === true;
+  const LINKS = PAY_ON ? (CFG.STRIPE_LINKS || {}) : {};
   let anyPay = false;
   document.querySelectorAll('[data-pay]').forEach((a) => {
     const url = LINKS[a.dataset.pay] || '';
-    if (!/^https:\/\/buy\.stripe\.com\//.test(url)) { a.hidden = true; return; }
+    if (!PAY_ON || !/^https:\/\/buy\.stripe\.com\//.test(url)) { a.hidden = true; return; }
     a.href = url; a.rel = 'noopener'; anyPay = true;
   });
   if (anyPay) document.querySelectorAll('[data-pay-box]').forEach((el) => { el.hidden = false; });
@@ -59,18 +61,18 @@
     };
     const btn = $('#submit'); btn.disabled = true; btn.textContent = 'Enviando…';
     try {
-      const res = await fetch(`${CFG.SUPABASE_URL}/rest/v1/subscribers`, {
-        method: 'POST', headers: { apikey: CFG.SUPABASE_KEY, Authorization: `Bearer ${CFG.SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(body),
+      // Alta por RPC (028): misma respuesta para correos nuevos y ya suscritos; no revela quién está dado de alta.
+      const res = await fetch(`${CFG.SUPABASE_URL}/rest/v1/rpc/subscribe`, {
+        method: 'POST', headers: { apikey: CFG.SUPABASE_KEY, Authorization: `Bearer ${CFG.SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ p: body }),
       });
-      // 409 = ese correo ya tiene una suscripción viva: respondemos igual para no revelar quién está suscrito.
-      if (res.status === 201 || res.status === 409) {
+      const out = res.ok ? await res.json().catch(() => null) : null;
+      if (out && out.ok === true) {
         $('#form').reset(); renderProvs();
         msg('ok', CFG.EMAIL_LIVE
-          ? '<b>Casi listo.</b> Te hemos enviado un correo para confirmar tu dirección. Hasta que lo confirmes no recibirás nada. Si no lo ves, mira en spam.'
+          ? '<b>Casi listo.</b> Si la dirección es correcta, te llegará un correo para confirmarla. Hasta que lo confirmes no recibirás nada. Si no lo ves, mira en spam.'
           : '<b>Solicitud guardada (modo prototipo).</b> Todavía no se envían correos de confirmación, así que de momento no recibirás nada. Puedes pedir el borrado de tus datos escribiendo al contacto del aviso legal.');
       } else {
-        const t = await res.text();
-        msg('err', t.includes('rate_limit') ? 'Demasiadas solicitudes ahora mismo. Inténtalo de nuevo en unos minutos.' : 'No hemos podido guardar tu solicitud. Revisa los datos e inténtalo de nuevo.');
+        msg('err', out && out.error === 'rate_limit' ? 'Demasiadas solicitudes ahora mismo. Inténtalo de nuevo en unos minutos.' : 'No hemos podido guardar tu solicitud. Revisa los datos e inténtalo de nuevo.');
       }
     } catch { msg('err', 'No hay conexión con el servidor. Inténtalo de nuevo.'); }
     btn.disabled = false; btn.textContent = 'Quiero mi prueba gratuita de 14 días';

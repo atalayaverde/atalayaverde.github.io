@@ -21,6 +21,8 @@
 <li><b>Perfil de solvencia (opcional):</b> facturación anual, clasificaciones, certificados y códigos LER autorizados.</li>
 <li><b>Análisis con IA:</b> el texto del pliego que pegas o que cargamos, junto con tu perfil. No pegues datos personales innecesarios.</li>
 <li><b>Avisos urgentes (opcional):</b> dirección del webhook de Slack o Discord que nos indiques.</li>
+<li><b>Registro de uso de la prueba (seudonimizado):</b> un código calculado a partir de tu correo con una clave secreta (HMAC-SHA256), después de pasarlo a minúsculas y, en Gmail, sin puntos ni «+alias». No guardamos el correo en claro en ese registro y sin la clave no se puede saber a qué correo corresponde, pero sigue siendo un dato personal seudonimizado. Sirve para no dar una segunda prueba gratuita y se conserva aunque borres la cuenta (ver plazos).</li>
+<li><b>Solicitudes de suscripción:</b> la fecha, el origen (panel, correo o web), el estado y, si la pides desde la web, el correo que escribes. Si la pides con tu correo, te enviamos un enlace de un solo uso para confirmarla; mientras no la confirmas, guardamos ese correo como máximo 48 horas. Para evitar abusos guardamos también, durante 2 días, el código seudonimizado (HMAC) de cada intento de alta o de solicitud hecho desde la web.</li>
 </ul>
 <p>No pedimos ni guardamos tu dirección IP, ni datos de navegación. No usamos cookies ni herramientas de analítica, ni tipografías ni recursos de terceros en la web. Los servidores de nuestros proveedores pueden registrar la IP de forma técnica y temporal para seguridad.</p>
 
@@ -30,6 +32,8 @@
 <tr><th>Gestionar la prueba gratuita y, en su caso, el plan de pago</th><td>Ejecución de la relación que solicitas (art. 6.1.b RGPD) a través de Stripe cuando los pagos estén activos.</td></tr>
 <tr><th>Generar análisis orientativos de pliegos y borradores técnicos con IA</th><td>Ejecución del servicio solicitado (art. 6.1.b RGPD). El análisis orientativo se realiza mediante la API de pago de Google Gemini; el usuario debe revisar siempre los resultados en los pliegos oficiales.</td></tr>
 <tr><th>Conservar un registro mínimo tras la baja</th><td>Defensa frente a posibles reclamaciones y acreditación del consentimiento y de la baja (art. 6.1.f y art. 17.3.e RGPD; bloqueo conforme al art. 32 LOPDGDD).</td></tr>
+<tr><th>Evitar el abuso de la prueba gratuita (registro seudonimizado del correo)</th><td>Interés legítimo (art. 6.1.f RGPD): impedir que un mismo correo vuelva a usar la prueba de 14 días. El registro no se borra con la baja de la cuenta. Puedes oponerte escribiéndonos; lo revisaremos caso por caso.</td></tr>
+<tr><th>Atender tu solicitud de suscripción y evitar solicitudes falsas o masivas</th><td>Medidas precontractuales que nos pides (art. 6.1.b RGPD) e interés legítimo (art. 6.1.f RGPD) en conservar un registro de la solicitud, confirmar que el buzón es tuyo y limitar los intentos.</td></tr>
 </table>
 <p>No elaboramos perfiles con decisiones automatizadas que te afecten legalmente. La “nota de encaje” solo ordena las convocatorias públicas según los sectores y zonas que tú eliges.</p>
 
@@ -38,6 +42,8 @@
 <li>Solicitudes <b>sin confirmar</b>: se borran a los 7 días.</li>
 <li>Suscripciones <b>activas</b>: mientras estés suscrito.</li>
 <li>Tras la <b>baja</b>: borramos tus preferencias y el nombre de empresa de inmediato, y conservamos bloqueados solo tu correo y las fechas de consentimiento y baja durante los plazos de prescripción de posibles responsabilidades (en general, 3 años), y después los eliminamos.</li>
+<li><b>Registro seudonimizado de la prueba:</b> 3 años desde que empezaste la prueba; después se borra automáticamente. Se conserva también si das de baja o se borra la cuenta.</li>
+<li><b>Solicitudes de suscripción:</b> 12 meses desde que se hacen, y después se borran automáticamente. Las solicitudes sin confirmar (con el correo escrito en la web) se borran a las 48 horas, y los registros de intentos, a los 2 días.</li>
 </ul>
 
 <h2>5. Quién más accede a tus datos</h2>

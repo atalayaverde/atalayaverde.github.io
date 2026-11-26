@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css?v=20261119p">
+<title>Solicitar suscripción · Atalaya Verde</title>
+<link rel="canonical" href="https://atalayaverde.github.io/solicitar.html">
+</head>
+<body>
+<header style="background:#12392d"><div class="wrap"><nav class="nav"><a class="brand" href="index.html"><i></i>Atalaya Verde</a></nav></div></header>
+<main class="wrap">
+  <div class="center"><div>
+    <h1 style="font:700 32px Georgia,serif;color:#12392d;margin:10px 0">Solicitar suscripción</h1>
+    <p style="color:#5d6862;max-width:32em;margin:0 auto 14px">Si tu prueba gratuita termina o ya la usaste, puedes pedir que activemos tu suscripción. Rubén lo hará a mano. No hay pago ahora mismo.</p>
+    <div id="boxToken" hidden>
+      <button type="button" class="btn" id="btnToken" style="background:#12392d;color:#c4e456">Solicitar suscripción</button>
+    </div>
+    <form id="formEmail" hidden style="max-width:28em;margin:0 auto;text-align:left">
+      <label for="email">Tu correo</label>
+      <input id="email" name="email" type="email" required maxlength="254" autocomplete="email" style="width:100%;padding:9px;margin:6px 0 12px;box-sizing:border-box">
+      <input type="text" name="website" id="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+      <button type="submit" class="btn" id="btnEmail" style="background:#12392d;color:#c4e456">Solicitar suscripción</button>
+      <p class="hint" style="font-size:13px;color:#5d6862">Te enviaremos un enlace a ese correo para confirmar la solicitud. Caduca en 24 horas.</p>
+    </form>
+    <p id="msg" style="color:#5d6862;max-width:32em;margin:16px auto 0" aria-live="polite"></p>
+    <p style="margin-top:20px"><a href="index.html">Volver al inicio</a></p>
+  </div></div>
+</main>
+<footer><div class="wrap"><a href="index.html">Inicio</a> · <a href="privacidad.html">Política de privacidad</a> · <a href="aviso-legal.html">Aviso legal</a> · <a href="condiciones.html">Condiciones de contratación</a></div></footer>
+<script src="config.js?v=20261126"></script>
+<script>
+(function () {
+  var cfg = window.AV_CONFIG || {};
+  var params = new URLSearchParams(location.search);
+  var token = params.get('t') || '';
+  var code = params.get('c') || '';
+  // B3: el token del panel y el código no se quedan en la barra ni en el historial.
+  if ((token || code) && window.history && history.replaceState) history.replaceState(null, '', location.pathname);
+  var msg = document.getElementById('msg');
+  var boxToken = document.getElementById('boxToken');
+  var formEmail = document.getElementById('formEmail');
+  var GENERIC = 'Si ese correo puede solicitar la suscripción, te llegará en las próximas horas un enlace para confirmarla (caduca en 24 horas). Revisa también la carpeta de spam.';
+
+  function tell(text) { msg.textContent = text; }
+  function rpc(name, body) {
+    return fetch(cfg.SUPABASE_URL + '/rest/v1/rpc/' + name, {
+      method: 'POST',
+      headers: { apikey: cfg.SUPABASE_KEY, Authorization: 'Bearer ' + cfg.SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (res) { return res.json().catch(function () { return null; }); });
+  }
+
+  if (code) {
+    // Se confirma con un clic (no al cargar) para que los antivirus de correo que abren enlaces
+    // no gasten el código de un solo uso.
+    tell('Pulsa el botón para confirmar tu solicitud.');
+    var btnC = document.createElement('button');
+    btnC.type = 'button'; btnC.className = 'btn'; btnC.textContent = 'Confirmar solicitud';
+    msg.parentNode.insertBefore(btnC, msg.nextSibling);
+    btnC.addEventListener('click', function () {
+      btnC.disabled = true;
+      tell('Confirmando tu solicitud…');
+      rpc('confirm_subscription_request', { p_code: code })
+        .then(function (body) {
+          if (body && body.ok) tell('Solicitud confirmada. Rubén la activará a mano. No hay pago ahora mismo.');
+          else { tell('Este enlace no es válido o ha caducado. Puedes pedir otro con tu correo.'); formEmail.hidden = false; }
+        })
+        .catch(function () { tell('No hay conexión con el servidor. Vuelve a abrir el enlace del correo.'); })
+        .then(function () { btnC.remove(); });
+    });
+  } else if (token) {
+    boxToken.hidden = false;
+  } else {
+    formEmail.hidden = false;
+  }
+
+  document.getElementById('btnToken').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    tell('Enviando tu solicitud…');
+    rpc('request_subscription', { p_portal_token: token, p_source: 'email' })
+      .then(function (body) {
+        if (body && body.ok) {
+          tell(body.already_pending ? 'Ya teníamos tu solicitud. Rubén la activará a mano.' : 'Hemos recibido tu solicitud. Rubén la activará a mano.');
+        } else if (body && body.error === 'invalid_or_expired_session') {
+          tell('Tu enlace ha caducado. Escribe tu correo y te enviaremos uno para confirmar.');
+          boxToken.hidden = true;
+          formEmail.hidden = false;
+        } else {
+          tell('No se ha podido enviar. Inténtalo de nuevo o escríbenos a pajonarias@gmail.com.');
+        }
+      })
+      .catch(function () { tell('No hay conexión con el servidor. Inténtalo de nuevo.'); })
+      .then(function () { btn.disabled = false; });
+  });
+
+  formEmail.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (document.getElementById('website').value) { tell(GENERIC); return; }
+    var email = document.getElementById('email').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) { tell('Revisa tu correo electrónico: no parece válido.'); return; }
+    var btn = document.getElementById('btnEmail');
+    btn.disabled = true;
+    tell('Enviando…');
+    // A1: la respuesta del servidor es siempre la misma; el mensaje también.
+    rpc('request_subscription', { p_email: email, p_source: 'web' })
+      .then(function () { tell(GENERIC); })
+      .catch(function () { tell('No hay conexión con el servidor. Inténtalo de nuevo.'); })
+      .then(function () { btn.disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>

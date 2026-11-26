@@ -17,7 +17,7 @@
     try {
       const r = await fetch(C.SUPABASE_URL + '/rest/v1/rpc/confirm_subscription', { method: 'POST', signal: ctl.signal, headers: { apikey: C.SUPABASE_KEY, Authorization: 'Bearer ' + C.SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: t }) });
       const v = r.ok ? await r.json() : 'error';
-      if (v === 'ok') set('✅', '¡Suscripción confirmada!', 'Tu prueba gratuita de 14 días ha empezado. Recibirás tu primer resumen en la próxima tanda. Cada correo lleva un enlace para darte de baja con un clic.');
+      if (v === 'ok') set('✅', '¡Correo confirmado!', 'Si es tu primera prueba, empieza ahora: 14 días gratis y tu primer resumen en la próxima tanda. Si este correo ya usó la prueba, te escribiremos para que puedas solicitar la suscripción. Cada correo lleva un enlace para darte de baja con un clic.');
       else if (v === 'expired') set('⌛', 'El enlace ha caducado', 'Los enlaces de confirmación duran 7 días. Vuelve a rellenar el formulario y te enviaremos uno nuevo.');
       else if (v === 'invalid') set('⚠️', 'Enlace no válido', 'No reconocemos este enlace. Puede que ya se haya dado de baja esta suscripción o que el enlace esté incompleto.');
       else { set('⚠️', 'No hemos podido confirmar', 'Pulsa el botón para reintentarlo. Si sigue fallando, abre el enlace del correo en Chrome o Safari.'); el('retry').hidden = false; }
