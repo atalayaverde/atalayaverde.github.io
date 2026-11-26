@@ -83,7 +83,7 @@
     <nav class="nav">
       <a class="brand" href="index.html"><i></i>Atalaya Verde</a>
       <div style="display:flex;gap:12px;align-items:center">
-        <a id="upgradeBtn" class="btn-sm primary" href="#planesPago" hidden>Pasar a un plan de pago</a>
+        <a id="upgradeBtn" class="btn-sm primary" href="#solicitarSuscripcion" hidden>Solicitar suscripción</a>
         <span id="companyBadge" style="color:#cfe3d8;font-size:14px;font-weight:600">Cargando panel...</span>
       </div>
     </nav>
@@ -93,6 +93,13 @@
 <main class="panel-wrap">
   <h1>Radar de oportunidades</h1>
   <p class="sub">Las licitaciones y ayudas que encajan con tu perfil, con resumen clave, gestión de estado y equipo.</p>
+
+  <section class="howto-box" id="solicitarSuscripcion" hidden style="padding:16px 18px">
+    <strong>¿Quieres seguir con Atalaya?</strong>
+    <p class="hint" style="margin:6px 0 10px">Si tu prueba termina o ya la usaste, puedes solicitar tu suscripción. Rubén la activará a mano. No hay pago ahora mismo.</p>
+    <button type="button" class="btn-sm primary" id="btnSolicitarSuscripcion">Solicitar suscripción</button>
+    <p id="solicitarMsg" class="hint" style="margin:10px 0 0" aria-live="polite"></p>
+  </section>
 
   <section class="howto-box" id="planesPago" hidden style="padding:16px 18px">
     <strong>¿Te convence Atalaya? Pasa a un plan de pago</strong>
@@ -248,7 +255,7 @@
   <p class="note"><a href="index.html">Inicio</a> · <a href="privacidad.html">Política de privacidad</a> · <a href="aviso-legal.html">Aviso legal</a> · <a href="cookies.html">Cookies</a> · <a href="condiciones.html">Condiciones de contratación</a></p>
 </main>
 
-<script src="config.js?v=20261119p"></script>
+<script src="config.js?v=20261126"></script>
 <script>
 (function () {
   var cfg = window.AV_CONFIG || {};
@@ -295,18 +302,35 @@
 
   var PLAN_LABEL = { trial: 'Prueba gratis', pro: 'Pro', equipo: 'Equipo' };
 
-  // Botones de pago Stripe: se muestran solo en plan de prueba y si hay enlaces en config.js.
+  // Botones de pago Stripe: solo si PAYMENTS_ENABLED, plan de prueba y Payment Link en config.js.
+  // Hasta que el cobro esté activo no se asignan URLs de pago.
   // client_reference_id = id del suscriptor: el webhook asigna el plan a esta cuenta aunque se pague con otro correo.
   function setupPayButtons(sub) {
     sub = sub || {};
-    var links = cfg.STRIPE_LINKS || {};
+    var payOn = cfg.PAYMENTS_ENABLED === true;
+    var links = payOn ? (cfg.STRIPE_LINKS || {}) : {};
     var box = document.getElementById('planesPago');
     var upgradeEl = document.getElementById('upgradeBtn');
     var plan = String(sub.plan || '').trim().toLowerCase();
     var any = false;
+    var reqBox = document.getElementById('solicitarSuscripcion');
+    if (!payOn) {
+      document.querySelectorAll('#planesPago [data-pay]').forEach(function (a) {
+        a.hidden = true; a.removeAttribute('href');
+      });
+      if (box) box.hidden = true;
+      if (reqBox) reqBox.hidden = false;
+      if (upgradeEl) {
+        upgradeEl.textContent = 'Solicitar suscripción';
+        upgradeEl.href = '#solicitarSuscripcion';
+        upgradeEl.hidden = false;
+      }
+      return;
+    }
+    if (reqBox) reqBox.hidden = true;
     document.querySelectorAll('#planesPago [data-pay]').forEach(function (a) {
       var url = links[a.getAttribute('data-pay')] || '';
-      if (!/^https:\/\/buy\.stripe\.com\//.test(url)) { a.hidden = true; return; }
+      if (!payOn || !/^https:\/\/buy\.stripe\.com\//.test(url)) { a.hidden = true; a.removeAttribute('href'); return; }
       var params = [];
       if (/^[0-9a-f-]{36}$/i.test(String(sub.id || ''))) params.push('client_reference_id=' + encodeURIComponent(sub.id));
       if (sub.email) params.push('prefilled_email=' + encodeURIComponent(sub.email));
@@ -341,6 +365,11 @@
   function trialLimitHtml() {
     var box = document.getElementById('planesPago');
     var canPay = box && !box.hidden;
+    var payOn = cfg.PAYMENTS_ENABLED === true;
+    if (!payOn) {
+      return '<div class="ai-limit-box"><p><strong>Has usado los ' + TRIAL_AI_CAP + ' análisis de la prueba gratis.</strong> Si quieres seguir, solicita tu suscripción. Rubén la activará a mano.</p>' +
+        '<a class="btn-sm primary" href="#solicitarSuscripcion">Solicitar suscripción</a></div>';
+    }
     return '<div class="ai-limit-box"><p><strong>Has usado los ' + TRIAL_AI_CAP + ' análisis de la prueba gratis.</strong> Pasa a un plan de pago para seguir.</p>' +
       (canPay
         ? '<a class="btn-sm primary" href="#planesPago" id="aiGoPlans">Ver planes de pago ↑</a>'
@@ -921,7 +950,42 @@
     invalid_or_expired_session: 'Tu acceso al panel ha caducado. Abre de nuevo el enlace de tu correo.',
     'Missing token': 'Abre el panel desde el enlace de tu correo para poder enviar ideas.'
   };
+
+  var solicitarBtn = document.getElementById('btnSolicitarSuscripcion');
+  var solicitarMsg = document.getElementById('solicitarMsg');
+  if (solicitarBtn && solicitarMsg) {
+    solicitarBtn.addEventListener('click', function () {
+      if (!token) { solicitarMsg.textContent = 'Abre el panel desde el enlace de tu correo para solicitar la suscripción.'; return; }
+      solicitarBtn.disabled = true;
+      solicitarMsg.textContent = 'Enviando tu petición…';
+      fetch(cfg.SUPABASE_URL + '/rest/v1/rpc/request_subscription', {
+        method: 'POST',
+        headers: { apikey: cfg.SUPABASE_KEY, Authorization: 'Bearer ' + cfg.SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_portal_token: token, p_source: 'panel' })
+      }).then(function (res) { return res.json().then(function (body) { return { res: res, body: body }; }); })
+        .then(function (out) {
+          var body = out.body || {};
+          if (body.ok) {
+            solicitarMsg.textContent = body.already_pending
+              ? 'Ya teníamos tu petición. Rubén la activará a mano.'
+              : 'Hemos recibido tu petición. Rubén la activará a mano.';
+          } else if (body.error === 'invalid_or_expired_session') {
+            solicitarMsg.textContent = 'Tu sesión ha caducado. Pide un enlace nuevo al panel e inténtalo otra vez.';
+          } else {
+            solicitarMsg.textContent = 'No se ha podido enviar. Inténtalo de nuevo o escríbenos a pajonarias@gmail.com.';
+          }
+        })
+        .catch(function () { solicitarMsg.textContent = 'No se ha podido enviar. Revisa tu conexión e inténtalo de nuevo.'; })
+        .then(function () { solicitarBtn.disabled = false; });
+    });
+  }
+  if (location.hash === '#solicitar' || location.hash === '#solicitarSuscripcion') {
+    var boxReq = document.getElementById('solicitarSuscripcion');
+    if (boxReq) { boxReq.hidden = false; boxReq.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }
+
   var feedbackBtn = document.getElementById('feedbackSendBtn');
+
   var feedbackTextEl = document.getElementById('feedbackText');
   var feedbackMsgEl = document.getElementById('feedbackMsg');
   if (feedbackBtn && feedbackTextEl && feedbackMsgEl) {
